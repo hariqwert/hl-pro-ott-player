@@ -1,0 +1,17 @@
+{
+  "URL": "http://play.b4u.live/stalker_portal",
+  "MAC": "00:1A:79:97:97:1E",
+  "SN": "00EBCEF9291CC",
+  "D1": "ECE6CBEADF122B5FBECC1BFC70EF11716D6CD34E65784FAAD18D70FAB5B7864F",
+  "D2": "ECE6CBEADF122B5FBECC1BFC70EF11716D6CD34E65784FAAD18D70FAB5B7864F",
+  "SG": "",
+  "Model": "MAG250",
+  "Proxy": "AUTO",
+  "API": "263",
+  "Share": "OFF",
+  "hw_version": "1.7-BD-00",
+  "hw_version_2": "69284ab85e1741116887f0b64e179d47",
+  "generated_time": 1783794387,
+  "type": "stalker",
+  "Name": "B4U Live Portal"
+}

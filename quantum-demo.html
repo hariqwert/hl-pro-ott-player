@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="robots" content="noindex">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUANTUM MAINTENANCE | Stalker Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { font-family: 'Space Grotesk', sans-serif; }
+        body { 
+            background-color: #03050a; 
+            overflow-x: hidden; 
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(34, 211, 238, 0.04), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.04), transparent 25%);
+        }
+        
+        /* Quantum Grid Overlay */
+        .quantum-grid {
+            position: absolute;
+            inset: 0;
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+            -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .glass-card {
+            background: rgba(10, 14, 23, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(34, 211, 238, 0.15);
+            box-shadow: inset 0 0 20px rgba(34, 211, 238, 0.05), 0 20px 40px -10px rgba(0,0,0,0.8);
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(34, 211, 238, 0.2); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(34, 211, 238, 0.5); }
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; pointer-events: none; }
+    </style>
+
+    <link rel="stylesheet" href="assets/local-ai.css?v=2.0">
+</head>
+<body class="text-white min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 text-center select-none relative">
+    
+    <div id="canvas-container"></div>
+
+    <!-- Main Container -->
+    <div class="max-w-md w-full z-10 relative space-y-6 mt-12">
+        <!-- Status Indicator -->
+        <div class="flex items-center justify-center gap-3 bg-black/40 border border-white/5 py-2.5 px-5 rounded-full w-fit mx-auto backdrop-blur-md shadow-lg">
+            <div class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+            </div>
+            <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-200">QUANTUM MAINTENANCE</span>
+        </div>
+
+        
+        <!-- Glassmorphic Quantum Matrix Card -->
+        <div class="glass-card rounded-[2rem] p-8 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center text-center mt-6">
+            <div class="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent pointer-events-none mix-blend-screen"></div>
+            
+            <div class="w-20 h-20 rounded-2xl bg-cyan-500/10 border-cyan-500/20 shadow-[0_0_30px_rgba(34,211,238,0.2)] border flex items-center justify-center mb-6 relative">
+                <div class="absolute inset-0 rounded-2xl bg-cyan-400/20 animate-pulse"></div>
+                <svg class="w-10 h-10 text-cyan-400 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+            </div>
+            
+            <h1 class="text-3xl font-black tracking-tighter text-white mb-2 drop-shadow-lg z-10 relative">QUANTUM LOCK</h1>
+            <p class="text-cyan-100/70 text-sm leading-relaxed font-medium z-10 relative">The Stalker Pro network is currently isolated in a quantum state lock by the administrator.</p>
+        </div>
+
+        <!-- Glassmorphic Quantum Matrix Card -->
+        <div id="musicCard" class="glass-card rounded-[2rem] p-7 shadow-2xl relative overflow-hidden transition-all duration-700 text-left mt-8">
+            <div class="relative z-10 space-y-6">
+                <!-- Header -->
+                <div class="flex items-center justify-between pb-5 border-b border-white/5">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-cyan-500/10 rounded-lg border border-cyan-500/20">
+                            <i data-lucide="radio" class="w-5 h-5 text-cyan-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold tracking-tight text-white">QUANTUM AUDIO</h3>
+                            <p class="text-[9px] uppercase font-bold text-cyan-500 tracking-widest mt-0.5">Secure Network Stream</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search box -->
+                <div class="flex gap-2">
+                    <input type="text" placeholder="Query audio databanks..." class="flex-1 bg-black/50 border border-white/10 rounded-xl py-3 px-4 text-xs font-medium outline-none text-cyan-50" readonly>
+                    <button class="bg-cyan-500/10 border border-cyan-500/30 p-3 rounded-xl flex items-center justify-center text-cyan-400">
+                        <i data-lucide="search" class="w-4.5 h-4.5"></i>
+                    </button>
+                </div>
+
+                <!-- Custom Audio Player Interface -->
+                <div class="pt-5 border-t border-white/5">
+                    <div class="flex items-center gap-4 mb-5">
+                        <div class="relative w-14 h-14 rounded-xl overflow-hidden bg-black/50 border border-white/10 shadow-lg">
+                            <img src="https://images.unsplash.com/photo-1614149162883-504ce4d13909?auto=format&fit=crop&q=80&w=150&h=150" class="w-full h-full object-cover opacity-80">
+                            <div class="absolute inset-0 border border-cyan-500/20 rounded-xl mix-blend-overlay"></div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-bold text-white truncate tracking-tight">System Idle</div>
+                            <div class="text-[10px] font-medium text-cyan-400/80 truncate uppercase mt-1 tracking-wider">Awaiting Audio Stream...</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-5">
+                        <!-- Progress Bar & Time -->
+                        <div class="flex items-center gap-3">
+                            <span class="text-[9px] font-mono font-medium text-cyan-500/80 w-8 text-left">0:00</span>
+                            <div class="flex-1 h-1.5 bg-black/50 border border-white/5 rounded-full relative overflow-hidden">
+                                <div class="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-cyan-600 to-cyan-400 rounded-full w-[35%] shadow-[0_0_10px_rgba(34,211,238,0.5)]"></div>
+                            </div>
+                            <span class="text-[9px] font-mono font-medium text-cyan-500/80 w-8 text-right">-3:12</span>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex items-center justify-between px-2">
+                            <button class="p-3 text-slate-400">
+                                <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                            </button>
+                            <button class="w-14 h-14 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shadow-[0_0_20px_rgba(34,211,238,0.15)]">
+                                <i data-lucide="play" class="w-6 h-6 ml-0.5 fill-current"></i>
+                            </button>
+                            <button class="p-3 text-slate-400">
+                                <i data-lucide="rotate-cw" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pt-8 flex flex-col items-center gap-1 opacity-60">
+            <div class="text-[9px] text-cyan-400 uppercase tracking-[0.3em] font-bold">Stalker Pro Core</div>
+            <div class="text-[8px] text-slate-500 uppercase tracking-widest font-mono">Quantum Firewall &bull; Active</div>
+        </div>
+    </div>
+    
+    <script>
+        lucide.createIcons();
+
+        const IS_MAINTENANCE = true;
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x02040a, 0.004);
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1500);
+        camera.position.set(0, 15, 90);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // Security / Lock Colors (Cyan for Maintenance, Red for Offline Kill Switch)
+        const c1Hex = IS_MAINTENANCE ? 0x00f0ff : 0xff0033; 
+        const c2Hex = IS_MAINTENANCE ? 0x8b5cf6 : 0xffaa00; 
+
+        let currentColor1 = new THREE.Color(c1Hex);
+        let currentColor2 = new THREE.Color(c2Hex);
+
+        const clock = new THREE.Clock();
+        const clickPos = new THREE.Vector2(0, 0);
+        let clickTime = 0.0;
+
+        // 1. Quantum Firewall Grid Matrix
+        const waveGeo = new THREE.PlaneGeometry(450, 300, 70, 50); // Lower res for stronger wireframe grid look
+        const waveMat = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0 },
+                uColorA: { value: currentColor1 },
+                uColorB: { value: currentColor2 },
+                uClickPos: { value: new THREE.Vector2(0, 0) },
+                uClickTime: { value: 0.0 },
+                uMouse: { value: new THREE.Vector2(0, 0) }
+            },
+            vertexShader: `
+                uniform float uTime;
+                uniform vec2 uClickPos;
+                uniform float uClickTime;
+                uniform vec2 uMouse;
+                varying vec2 vUv;
+                varying float vElevation;
+
+                void main() {
+                    vUv = uv;
+                    vec3 pos = position;
+                    // Slower, more rigid wave for lockdown/firewall state
+                    float time = uTime * 0.2; 
+                    float noise1 = sin(pos.x * 0.04 + time) * cos(pos.y * 0.04 + time) * 8.0;
+                    float noise2 = sin(pos.x * 0.08 - time * 0.5) * 3.0;
+                    
+                    // Mouse interaction
+                    vec2 screenPos = (modelMatrix * vec4(pos, 1.0)).xy;
+                    float dist = distance(screenPos * 0.01, uMouse);
+                    float hover = exp(-dist * 5.0) * 12.0;
+
+                    // Shockwave
+                    float timeSinceClick = uTime - uClickTime;
+                    float shockwave = 0.0;
+                    if (timeSinceClick > 0.0 && timeSinceClick < 3.0) {
+                        float distToClick = distance(screenPos * 0.01, uClickPos);
+                        float ring = abs(distToClick - timeSinceClick * 2.5);
+                        shockwave = exp(-ring * 10.0) * (3.0 - timeSinceClick) * 5.0;
+                    }
+
+                    pos.z += noise1 + noise2 + hover + shockwave;
+                    vElevation = pos.z;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 uColorA;
+                uniform vec3 uColorB;
+                varying vec2 vUv;
+                varying float vElevation;
+                void main() {
+                    float mixStrength = (vElevation + 10.0) * 0.05;
+                    vec3 color = mix(uColorA, uColorB, mixStrength);
+                    
+                    // Emphasize nodes
+                    float grid = sin(vUv.x * 200.0) * sin(vUv.y * 200.0);
+                    color += vec3(grid * 0.15);
+
+                    gl_FragColor = vec4(color, 0.45); // highly transparent wireframe
+                }
+            `,
+            transparent: true,
+            wireframe: true, // WIREFRAME FOR FIREWALL MATRIX LOOK
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide
+        });
+
+        const waveMesh = new THREE.Mesh(waveGeo, waveMat);
+        waveMesh.rotation.x = -Math.PI * 0.4;
+        waveMesh.position.y = -15;
+        scene.add(waveMesh);
+
+        // 2. Security Gyroscopes (Slower, tense rotation)
+        const gyroGroup = new THREE.Group();
+        scene.add(gyroGroup);
+        gyroGroup.position.set(0, 0, -40);
+
+        const ringGeo1 = new THREE.TorusGeometry(32, 0.15, 8, 100);
+        const ringGeo2 = new THREE.TorusGeometry(38, 0.1, 8, 100);
+        const ringGeo3 = new THREE.TorusGeometry(44, 0.08, 8, 100);
+
+        const ringMat1 = new THREE.MeshBasicMaterial({ color: currentColor1, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, wireframe: true });
+        const ringMat2 = new THREE.MeshBasicMaterial({ color: currentColor2, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, wireframe: true });
+        const ringMat3 = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, wireframe: true });
+
+        const ring1 = new THREE.Mesh(ringGeo1, ringMat1);
+        const ring2 = new THREE.Mesh(ringGeo2, ringMat2);
+        const ring3 = new THREE.Mesh(ringGeo3, ringMat3);
+
+        ring1.rotation.x = Math.PI / 3;
+        ring2.rotation.y = Math.PI / 4;
+        ring3.rotation.z = Math.PI / 6;
+
+        gyroGroup.add(ring1);
+        gyroGroup.add(ring2);
+        gyroGroup.add(ring3);
+
+        // 3. Static/Suspended Quantum Particles (Locked State)
+        const pCount = 800;
+        const pGeo = new THREE.BufferGeometry();
+        const pPositions = new Float32Array(pCount * 3);
+        const pScales = new Float32Array(pCount);
+        const pAlphas = new Float32Array(pCount);
+
+        for (let i = 0; i < pCount; i++) {
+            pPositions[i * 3] = (Math.random() - 0.5) * 400;
+            pPositions[i * 3 + 1] = (Math.random() - 0.5) * 200;
+            pPositions[i * 3 + 2] = (Math.random() - 0.5) * 350 - 30;
+            pScales[i] = Math.random() * 1.5 + 0.5;
+            pAlphas[i] = Math.random() * 0.85 + 0.15;
+        }
+
+        pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+        pGeo.setAttribute('aScale', new THREE.BufferAttribute(pScales, 1));
+        pGeo.setAttribute('aAlpha', new THREE.BufferAttribute(pAlphas, 1));
+
+        const pMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0 },
+                uColor: { value: currentColor1 },
+                uMouse: { value: new THREE.Vector2(0, 0) }
+            },
+            vertexShader: `
+                uniform float uTime;
+                uniform vec2 uMouse;
+                attribute float aScale;
+                attribute float aAlpha;
+                varying float vAlpha;
+                void main() {
+                    vAlpha = aAlpha;
+                    vec3 pos = position;
+                    // Jittery suspension (quantum lock)
+                    pos.y += sin(uTime * 15.0 + pos.x) * 0.15;
+                    pos.x += cos(uTime * 15.0 + pos.z) * 0.15;
+                    vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
+                    gl_PointSize = aScale * (250.0 / -mvPos.z);
+                    gl_Position = projectionMatrix * mvPos;
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 uColor;
+                varying float vAlpha;
+                void main() {
+                    float dist = distance(gl_PointCoord, vec2(0.5));
+                    if (dist > 0.5) discard;
+                    float glow = clamp(0.15 / dist - 0.25, 0.0, 1.0);
+                    gl_FragColor = vec4(mix(vec3(1.0), uColor, 0.6), vAlpha * glow);
+                }
+            `,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+
+        const particles = new THREE.Points(pGeo, pMaterial);
+        scene.add(particles);
+
+        const mouse = new THREE.Vector2();
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            waveMat.uniforms.uMouse.value.set(mouse.x, mouse.y);
+            pMaterial.uniforms.uMouse.value.set(mouse.x, mouse.y);
+        });
+
+        window.addEventListener('pointerdown', (e) => {
+            const clickNormX = (e.clientX / window.innerWidth) * 2 - 1;
+            const clickNormY = -(e.clientY / window.innerHeight) * 2 + 1;
+            clickPos.set(clickNormX, clickNormY);
+            clickTime = clock.getElapsedTime();
+            waveMat.uniforms.uClickPos.value.copy(clickPos);
+            waveMat.uniforms.uClickTime.value = clickTime;
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+
+            waveMat.uniforms.uTime.value = elapsedTime;
+            pMaterial.uniforms.uTime.value = elapsedTime;
+
+            // Slow, rigid rotation
+            ring1.rotation.x += 0.0015;
+            ring1.rotation.y += 0.001;
+            ring2.rotation.y -= 0.002;
+            ring2.rotation.z += 0.0015;
+            ring3.rotation.z += 0.001;
+            ring3.rotation.x -= 0.0015;
+
+            gyroGroup.position.x += (mouse.x * 4 - gyroGroup.position.x) * 0.05;
+            gyroGroup.position.y += (mouse.y * 3 - gyroGroup.position.y) * 0.05;
+
+            waveMesh.rotation.z = Math.sin(elapsedTime * 0.05) * 0.015;
+            
+            // Suspended/static particles
+            particles.rotation.y = Math.sin(elapsedTime * 0.2) * 0.02;
+
+            camera.position.x += (mouse.x * 6 - camera.position.x) * 0.05;
+            camera.position.y += ((mouse.y * 5 + 15) - camera.position.y) * 0.05;
+            camera.lookAt(0, 0, 0);
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+    <script src="assets/local-ai.js?v=2.0"></script>
+</body>
+
+</html>

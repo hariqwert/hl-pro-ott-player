@@ -1,0 +1,123 @@
+[
+  {
+    "roomId": "PARTY-4725",
+    "title": "Alice's Watch Party",
+    "mediaUrl": "/play.php?url=test",
+    "mediaName": "Test Channel",
+    "currentTime": 0,
+    "isPlaying": true,
+    "lastUpdated": 1788549693375,
+    "hostId": "usr_ed71bd15",
+    "hostToken": "ht_7b8caa65-71ea-413d-bba3-ad1d4d7f0c80",
+    "hostIp": "127.0.0.1",
+    "createdAt": 1788549693375,
+    "requireApproval": false,
+    "participants": [
+      {
+        "id": "usr_ed71bd15",
+        "name": "Alice",
+        "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Alice",
+        "isHost": true,
+        "status": "approved",
+        "lastPing": 1788549693375,
+        "currentTime": 0,
+        "isPlaying": true
+      },
+      {
+        "id": "usr_4d5a2fd1",
+        "name": "Bob",
+        "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Bob",
+        "isHost": false,
+        "status": "approved",
+        "lastPing": 1788549699383,
+        "currentTime": 0,
+        "isPlaying": true
+      },
+      {
+        "id": "usr_45de0891",
+        "name": "Charlie",
+        "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Charlie",
+        "isHost": false,
+        "status": "approved",
+        "lastPing": 1788549702176,
+        "currentTime": 0,
+        "isPlaying": true
+      },
+      {
+        "id": "usr_28865e90",
+        "name": "Dave",
+        "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Dave",
+        "isHost": false,
+        "status": "approved",
+        "lastPing": 1788549705214,
+        "currentTime": 0,
+        "isPlaying": true
+      }
+    ],
+    "chat": [
+      {
+        "id": "91646387-d31f-4ca5-afef-68ab28e02320",
+        "sender": "System",
+        "avatar": "",
+        "text": "Watch Party room created! Share this link with friends to watch together.",
+        "time": "07:21 PM"
+      },
+      {
+        "id": "b0708b76-2600-43c8-b9df-ebd3826e0223",
+        "sender": "System",
+        "avatar": "",
+        "text": "Bob joined the watch party! 🎉",
+        "time": "07:21 PM"
+      },
+      {
+        "id": "744afe80-7c06-41f3-8709-62bb9748a22f",
+        "sender": "System",
+        "avatar": "",
+        "text": "Charlie joined the watch party! 🎉",
+        "time": "07:21 PM"
+      },
+      {
+        "id": "f2f1a963-a5d1-48d9-8f95-97c7504d3617",
+        "sender": "System",
+        "avatar": "",
+        "text": "Dave joined the watch party! 🎉",
+        "time": "07:21 PM"
+      }
+    ]
+  },
+  {
+    "roomId": "PARTY-6869",
+    "title": "hari's Watch Party",
+    "mediaUrl": "https://ais-dev-irslnxcfbsyohhnqnejqmb-91981519553.asia-southeast1.run.app/play_consumet.php?id=969681&name=Spider-Man%3A+Brand+New+Day&type=movie&s=1&e=1&source=consumet.html&imdb=tt22084616&party=PARTY-4638",
+    "mediaName": "Spider-Man: Brand New Day | Stalker Pro Pure HLS Player",
+    "currentTime": 0,
+    "isPlaying": true,
+    "lastUpdated": 1788549705270,
+    "hostId": "usr_47b33377",
+    "hostToken": "ht_1f0bac86-93bb-44d9-a852-43354e3200fe",
+    "hostIp": "116.68.103.31",
+    "createdAt": 1788549699997,
+    "requireApproval": false,
+    "participants": [
+      {
+        "id": "usr_47b33377",
+        "name": "hari",
+        "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=hari",
+        "isHost": true,
+        "status": "approved",
+        "lastPing": 1788549705270,
+        "currentTime": 0,
+        "isPlaying": true
+      }
+    ],
+    "chat": [
+      {
+        "id": "160856ec-70df-4a84-baab-14c219aed03f",
+        "sender": "System",
+        "avatar": "",
+        "text": "Watch Party room created! Share this link with friends to watch together.",
+        "time": "07:21 PM"
+      }
+    ]
+  }
+]

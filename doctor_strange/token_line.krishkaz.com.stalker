@@ -1,0 +1,41 @@
+{
+  "STALKER": {
+    "Author": "DOCTOR_STRANGE",
+    "message": "Xtream Codes details fetched successfully",
+    "type": "xtream",
+    "URL": "http://line.krishkaz.com",
+    "username": "AdemSarikaya",
+    "Name": "AdemSarikaya",
+    "expirydate": "2027-01-11 18:57:35",
+    "statusCode": 200,
+    "Date": "2026-08-29 17:05:25",
+    "data": {
+      "user_info": {
+        "username": "AdemSarikaya",
+        "password": "16A525",
+        "message": "",
+        "auth": 1,
+        "status": "Active",
+        "exp_date": "1799693855",
+        "is_trial": "0",
+        "active_cons": "1",
+        "created_at": "1768157855",
+        "max_connections": "1",
+        "allowed_output_formats": [
+          "m3u8",
+          "ts"
+        ]
+      },
+      "server_info": {
+        "url": "line.krishkaz.com",
+        "port": "80",
+        "https_port": "25463",
+        "server_protocol": "http",
+        "rtmp_port": "25462",
+        "timezone": "Europe/Amsterdam",
+        "timestamp_now": 1788023121,
+        "time_now": "2026-08-29 19:05:21"
+      }
+    }
+  }
+}

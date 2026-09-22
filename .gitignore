@@ -1,0 +1,10 @@
+node_modules/
+*.zip
+*.log
+*.tmp
+.system_generated/
+bin/TorrServer.exe
+bin/TorrServer
+.env
+.env.*
+!.env.example

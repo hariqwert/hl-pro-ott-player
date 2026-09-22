@@ -1,0 +1,11 @@
+[Firestore] Initialized Successfully.
+[StreamHealth] Background health checker scheduled every 5 minute(s).
+[PartySync] Restored 0 active party rooms from storage
+◇ injected env (8) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+[TorrServer] Service is already running and healthy on port 8090.
+[Firestore] Successfully downloaded and applied config to admin_db.json
+[Movies4u Mirror Engine] Checking primary index https://movies4u.tube/ for active mirrors...
+[Firestore] Successfully downloaded 0 M3U playlists from Firestore.
+[STRICT LOCK] .maintenance_lock file found. Forcing maintenance mode ON.
+Attempting to start server on port 3000
+Server running at http://0.0.0.0:3000

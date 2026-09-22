@@ -1,0 +1,218 @@
+{
+    "incidents": [
+        {
+            "ip": "111.92.124.164",
+            "timestamp": 1786780217069,
+            "username": "hari",
+            "reason": "Brute Force: 5 Failed Login Attempts"
+        }
+    ],
+    "maintenanceMusicMode": "query",
+    "maintenanceVideoAutoplay": true,
+    "maintenanceVideoType": "youtube",
+    "consumetMaintenance": false,
+    "maintenanceVideoEnabled": false,
+    "blacklist": [],
+    "maintenanceMusicQuery": "Indrajaaam",
+    "sportsContainers": [
+        {
+            "cardBg": "",
+            "playerPng": "https://pngimg.com/d/cricket_PNG10.png",
+            "subtitle": "Live ICC match coverage, 4K multi-camera streams, Hindi & English dugout feeds.",
+            "createdAt": "2026-09-13T11:50:00.000Z",
+            "gridBgUrl": "",
+            "bgUrl": "https://images.fancode.com/skillup-uploads/cms-media/AFG_IND_2026_WEBTVBG_212.jpg?hash=eyJrZXkiOiJza2lsbHVwLXVwbG9hZHMvY21zLW1lZGlhL0FGR19JTkRfMjAyNl9XRUJUVkJHXzIxMi5qcGciLCJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiY292ZXIiLCJ3aWR0aCI6Mzg0MCwiaGVpZ2h0IjoyMTYwfSwid2VicCI6eyJxdWFsaXR5Ijo2MCwibG9zc2xlc3MiOmZhbHNlfX0sIm91dHB1dEZvcm1hdCI6IndlYnAifQ==",
+            "badge": "CRICKET LIVE",
+            "enabled": true,
+            "title": "INDIA VS AFGHANISTAN",
+            "order": 0,
+            "gridStyle": "grid",
+            "id": "default_showcase"
+        }
+    ],
+    "maintenanceSchedule": {
+        "scheduledTime": "",
+        "autoActivate": false,
+        "enabled": false,
+        "durationMinutes": 60,
+        "noticeText": ""
+    },
+    "maintenanceMusicPlaylist": [
+        {
+            "img": "https://i.ytimg.com/vi/wLG9P297wLg/hq720.jpg?sqp=-oaymwEcCNAFEJQDSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLB06TBTRb3_dF_7Lku_a76q2eIDeg",
+            "url": "/api/v1/youtube/stream?v=wLG9P297wLg&type=audio&title=Indrajaalam&artist=Vishnu%20Vijay%20-%20Topic",
+            "artist": "Vishnu Vijay - Topic",
+            "title": "Indrajaalam",
+            "id": "youtube_wLG9P297wLg"
+        }
+    ],
+    "sports": [
+        {
+            "id": "sports_1789300358414",
+            "icon": "https://images.fancode.com/skillup-uploads/cms-media/AFG_IND_2026_WEBTVBG_212.jpg?hash=eyJrZXkiOiJza2lsbHVwLXVwbG9hZHMvY21zLW1lZGlhL0FGR19JTkRfMjAyNl9XRUJUVkJHXzIxMi5qcGciLCJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiY292ZXIiLCJ3aWR0aCI6Mzg0MCwiaGVpZ2h0IjoyMTYwfSwid2VicCI6eyJxdWFsaXR5Ijo2MCwibG9zc2xlc3MiOmZhbHNlfX0sIm91dHB1dEZvcm1hdCI6IndlYnAifQ==",
+            "title": "INDIA VS AFG",
+            "containerId": "default_showcase",
+            "url": "https://stream.kliv.in/nex/air11_5788.m3u8",
+            "bgUrl": "https://images.fancode.com/skillup-uploads/cms-media/AFG_IND_2026_WEBTVBG_212.jpg?hash=eyJrZXkiOiJza2lsbHVwLXVwbG9hZHMvY21zLW1lZGlhL0FGR19JTkRfMjAyNl9XRUJUVkJHXzIxMi5qcGciLCJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiY292ZXIiLCJ3aWR0aCI6Mzg0MCwiaGVpZ2h0IjoyMTYwfSwid2VicCI6eyJxdWFsaXR5Ijo2MCwibG9zc2xlc3MiOmZhbHNlfX0sIm91dHB1dEZvcm1hdCI6IndlYnAifQ==",
+            "addedAt": "2026-09-13T11:52:38.414Z"
+        },
+        {
+            "addedAt": "2026-09-13T11:53:09.721Z",
+            "icon": "https://images.fancode.com/skillup-uploads/cms-media/AFG_IND_2026_WEBTVBG_212.jpg?hash=eyJrZXkiOiJza2lsbHVwLXVwbG9hZHMvY21zLW1lZGlhL0FGR19JTkRfMjAyNl9XRUJUVkJHXzIxMi5qcGciLCJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiY292ZXIiLCJ3aWR0aCI6Mzg0MCwiaGVpZ2h0IjoyMTYwfSwid2VicCI6eyJxdWFsaXR5Ijo2MCwibG9zc2xlc3MiOmZhbHNlfX0sIm91dHB1dEZvcm1hdCI6IndlYnAifQ==",
+            "title": "INDIA VS AFG",
+            "id": "sports_1789300389721",
+            "url": "https://ellamoonu.ai.studio/live.php?token=STALKER_PRO&id=tim_willow-usa&m3u=1&type=hls",
+            "containerId": "default_showcase",
+            "bgUrl": "https://images.fancode.com/skillup-uploads/cms-media/AFG_IND_2026_WEBTVBG_212.jpg?hash=eyJrZXkiOiJza2lsbHVwLXVwbG9hZHMvY21zLW1lZGlhL0FGR19JTkRfMjAyNl9XRUJUVkJHXzIxMi5qcGciLCJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiY292ZXIiLCJ3aWR0aCI6Mzg0MCwiaGVpZ2h0IjoyMTYwfSwid2VicCI6eyJxdWFsaXR5Ijo2MCwibG9zc2xlc3MiOmZhbHNlfX0sIm91dHB1dEZvcm1hdCI6IndlYnAifQ=="
+        }
+    ],
+    "maintenanceVideoMuted": false,
+    "maintenanceMode": false,
+    "maintenanceVideoSubtitle": "",
+    "backgrounds": {
+        "music": {
+            "url": "",
+            "type": "auto"
+        },
+        "index": {
+            "type": "auto",
+            "url": ""
+        },
+        "musicUseSongVideo": true,
+        "consumet": {
+            "type": "auto",
+            "url": ""
+        },
+        "hero": {
+            "type": "auto",
+            "url": ""
+        }
+    },
+    "activeTemplate": "Scheduled Downtime",
+    "maintenanceVideoTitle": "",
+    "maintenanceTitle": "യുഗാവസാനം",
+    "siteLockMode": false,
+    "playConsumetMaintenance": false,
+    "maintenanceVideoUrl": "https://www.youtube.com/watch?v=5KihByp4IDs&list=RD5KihByp4IDs&start_radio=1",
+    "features": {
+        "firewallEnabled": true,
+        "stalkerEnabled": true,
+        "publicPlaylistEnabled": true,
+        "m3uEnabled": true
+    },
+    "m3uPlaylists": [],
+    "maintenanceText": "Thankyou for your support",
+    "systemStatus": "active",
+    "sportsHubConfig": {
+        "subtitle": "",
+        "title": "INDIA VS AFGANAISTAN",
+        "displayMode": "grid",
+        "bgUrl": "https://images.fancode.com/skillup-uploads/cms-media/AFG_IND_2026_WEBTVBG_212.jpg?hash=eyJrZXkiOiJza2lsbHVwLXVwbG9hZHMvY21zLW1lZGlhL0FGR19JTkRfMjAyNl9XRUJUVkJHXzIxMi5qcGciLCJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiY292ZXIiLCJ3aWR0aCI6Mzg0MCwiaGVpZ2h0IjoyMTYwfSwid2VicCI6eyJxdWFsaXR5Ijo2MCwibG9zc2xlc3MiOmZhbHNlfX0sIm91dHB1dEZvcm1hdCI6IndlYnAifQ==",
+        "badge": "CRICKET"
+    },
+    "maintenanceVideoLoop": true,
+    "liveEvents": [],
+    "allowedDeveloperIps": [],
+    "portals": [
+        {
+            "url": "http://hdiptv.club:80",
+            "type": "xtream",
+            "isDefault": false,
+            "username": "0053e626fddf",
+            "name": "HDIPTV Club Portal",
+            "password": "3030bf1583",
+            "id": "xtream_hdiptv_club"
+        },
+        {
+            "name": "Krishkaz Xtream Portal",
+            "isDefault": false,
+            "url": "http://line.krishkaz.com",
+            "id": "xtream_line_krishkaz_com",
+            "username": "AdemSarikaya",
+            "type": "xtream",
+            "password": "16A525"
+        },
+        {
+            "password": "84111dead2",
+            "name": "Strong8k Xtream Portal",
+            "id": "xtream_strong8k_art",
+            "type": "xtream",
+            "username": "7b81bb3ace8c",
+            "url": "http://strong8k.art:80",
+            "isDefault": false
+        },
+        {
+            "username": "fouaadkhadi",
+            "id": "xtream_xupuybzt_lazdns_com",
+            "isDefault": false,
+            "url": "http://xupuybzt.lazdns.com",
+            "type": "xtream",
+            "password": "E7JWd8N9",
+            "name": "Lazdns Xtream Portal"
+        },
+        {
+            "url": "http://123.geoent.cc/stalker_portal",
+            "name": "Geoent Stalker Portal",
+            "hw_version": "1.7-BD-30",
+            "hw_version_2": "ff82ef9cd910ba406f2fd062045b7f52",
+            "D2": "D20A30551398D28B10BF3676E4D2442D2442F8A398E42BAB7F203313594891B6",
+            "D1": "D20A30551398D28B10BF3676E4D2442D2442F8A398E42BAB7F203313594891B6",
+            "model": "MAG250",
+            "type": "stalker",
+            "id": "stalker_123_geoent_cc",
+            "API": "263",
+            "isDefault": false,
+            "mac": "00:1A:79:00:00:01"
+        },
+        {
+            "name": "WeaselTV Portal",
+            "url": "http://weaseltv.live:80",
+            "id": "stalker_weaseltv_live",
+            "model": "MAG250",
+            "type": "stalker",
+            "mac": "A0:BB:3E:BC:25:43",
+            "isDefault": true
+        },
+        {
+            "name": "mrp",
+            "url": "http://play.tatasky.xyz/stalker_portal",
+            "model": "MAG250",
+            "isDefault": false,
+            "mac": "00:1A:79:54:4F:7F",
+            "id": "play.tatasky.xyz_867",
+            "type": "stalker"
+        },
+        {
+            "hw_version_2": "69284ab85e1741116887f0b64e179d47",
+            "D2": "ECE6CBEADF122B5FBECC1BFC70EF11716D6CD34E65784FAAD18D70FAB5B7864F",
+            "mac": "00:1A:79:97:97:1E",
+            "Proxy": "AUTO",
+            "url": "http://play.b4u.live/stalker_portal",
+            "hw_version": "1.7-BD-00",
+            "SG": "",
+            "isDefault": false,
+            "type": "stalker",
+            "name": "B4U Live Portal",
+            "D1": "ECE6CBEADF122B5FBECC1BFC70EF11716D6CD34E65784FAAD18D70FAB5B7864F",
+            "id": "stalker_play_b4u_live",
+            "Share": "OFF",
+            "sn": "00EBCEF9291CC",
+            "API": "263",
+            "model": "MAG250"
+        },
+        {
+            "type": "xtream",
+            "isDefault": false,
+            "username": "app",
+            "url": "https://solapuristreams.iptv18.space",
+            "password": "developer",
+            "name": "Solapuri Streams",
+            "id": "xtream_solapuristreams"
+        }
+    ],
+    "sportsM3uFiles": [],
+    "playMaintenance": false,
+    "maintenanceVideoUploadedFile": "WhatsApp Video 2023-12-14 at 6.14.07 PM.mp4",
+    "maintenanceAdminBypass": false,
+    "developerMode": false
+}

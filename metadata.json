@@ -1,0 +1,11 @@
+{
+  "name": "Remix HL",
+  "description": "High-performance streaming portal and player with integrated Netflix/Hotstar-style cast profiles, rich media intelligence, and multi-source playback.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
