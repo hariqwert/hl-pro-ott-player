@@ -6571,13 +6571,38 @@ app.get('/api/mdtv/stream/:id', async (req: Request, res: Response) => {
 app.get(['/api/mdtv/manifest/:id', '/api/mdtv/manifest/:id.mpd'], async (req: Request, res: Response) => {
     try {
         const rawId = (req.params.id as string || '').replace(/\.mpd$/i, '');
-        const manifestResult = await JtvService.getRewrittenManifest(rawId);
+        let manifestResult: { manifest: string; contentType: string } | null = null;
+        let upstreamRedirectUrl: string | null = null;
+
+        try {
+            manifestResult = await JtvService.getRewrittenManifest(rawId);
+        } catch (fetchErr: any) {
+            const status = fetchErr?.response?.status || fetchErr?.status;
+            // GCP/cloud datacenter IPs are blocked by JioTV CDN (451 = legal/geo block, 403 = IP ban)
+            // Fall through to client-side redirect — browser IP is not blocked
+            if (status === 451 || status === 403) {
+                console.warn(`[Manifest Route] Server-side fetch blocked (${status}) for ${rawId} — redirecting client to upstream MPD directly`);
+                const ch = await JtvService.resolveChannel(rawId).catch(() => null);
+                if (ch && (ch.full_stream_url || ch.stream_url)) {
+                    upstreamRedirectUrl = ch.full_stream_url || (ch.stream_url + (ch.token ? (ch.stream_url.includes('?') ? '&' : '?') + ch.token : ''));
+                }
+            } else {
+                throw fetchErr;
+            }
+        }
+
         if (manifestResult && manifestResult.manifest) {
             res.setHeader('Content-Type', manifestResult.contentType || 'application/dash+xml');
             res.setHeader('Access-Control-Allow-Origin', '*');
             res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
             res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
             return res.send(manifestResult.manifest);
+        } else if (upstreamRedirectUrl) {
+            // Return JSON with the direct URL so client can configure the player itself
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            return res.status(451).json({ redirect: upstreamRedirectUrl, reason: 'datacenter_ip_blocked', message: 'Use the redirect URL directly in the player' });
         } else {
             return res.status(404).send('Manifest not found or upstream unavailable');
         }
@@ -6679,13 +6704,35 @@ app.get('/api/jtv/stream/:id', async (req: Request, res: Response) => {
 app.get(['/api/jtv/manifest/:id', '/api/jtv/manifest/:id.mpd'], async (req: Request, res: Response) => {
     try {
         const rawId = (req.params.id as string || '').replace(/\.mpd$/i, '');
-        const manifestResult = await JtvService.getRewrittenManifest(rawId);
+        let manifestResult: { manifest: string; contentType: string } | null = null;
+        let upstreamRedirectUrl: string | null = null;
+
+        try {
+            manifestResult = await JtvService.getRewrittenManifest(rawId);
+        } catch (fetchErr: any) {
+            const status = fetchErr?.response?.status || fetchErr?.status;
+            if (status === 451 || status === 403) {
+                console.warn(`[JTV Manifest Route] Server-side fetch blocked (${status}) for ${rawId} — redirecting client to upstream MPD directly`);
+                const ch = await JtvService.resolveChannel(rawId).catch(() => null);
+                if (ch && (ch.full_stream_url || ch.stream_url)) {
+                    upstreamRedirectUrl = ch.full_stream_url || (ch.stream_url + (ch.token ? (ch.stream_url.includes('?') ? '&' : '?') + ch.token : ''));
+                }
+            } else {
+                throw fetchErr;
+            }
+        }
+
         if (manifestResult && manifestResult.manifest) {
             res.setHeader('Content-Type', manifestResult.contentType || 'application/dash+xml');
             res.setHeader('Access-Control-Allow-Origin', '*');
             res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
             res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
             return res.send(manifestResult.manifest);
+        } else if (upstreamRedirectUrl) {
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            return res.status(451).json({ redirect: upstreamRedirectUrl, reason: 'datacenter_ip_blocked', message: 'Use the redirect URL directly in the player' });
         } else {
             return res.status(404).send('JTV Manifest not found or upstream unavailable');
         }

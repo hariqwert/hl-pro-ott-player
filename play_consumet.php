@@ -2210,7 +2210,9 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                                         resolvedSrc = src;
                                     } else {
                                         // DASH ClearKey stream (JioTV, Hotstar DASH, etc.)
-                                        src = ch.manifest_url || `/api/jtv/manifest/${ch.id}.mpd` || ch.full_stream_url || ch.stream_url;
+                                        // Prefer direct CDN URL (full_stream_url) so browser fetches MPD directly —
+                                        // avoids GCP datacenter IP blocks (HTTP 451) on server-side manifest proxy
+                                        src = ch.full_stream_url || ch.manifest_url || `/api/jtv/manifest/${ch.id}.mpd` || ch.stream_url;
                                         resolvedSrc = src;
                                         if (ch.token) window._activeAkamaiToken = ch.token;
                                         if (ch.key_id && ch.key) {
