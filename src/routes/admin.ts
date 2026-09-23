@@ -22,6 +22,9 @@ import { generateContainerWithWebSearch, queryAiBroadcastAssistant, getGeminiCli
 import { scrapeEmbedToM3u8, testM3u8Connectivity, inferChannelMetadata } from '../services/embedScraperService';
 import { scrapeBingrStream, BINGR_SERVERS, verifyStreamReachable, scrapeMovie, scrapeTvEpisode } from '../services/bingrScraperService';
 import { fetchFanCodeEvents } from '../services/fancodeService';
+import { syncZeeChannels } from '../services/zeeChannelsService';
+import { getAllSportsHighlights } from '../services/sportsHighlightsService';
+import { getBiggBossEpisodes, getBiggBossSeasons } from '../services/biggBossService';
 
 const router = Router();
 
@@ -3909,6 +3912,36 @@ router.get('/scrapers/status', requireAdmin, async (req: Request, res: Response)
                 status: 'online',
                 protocol: 'Obfuscated HLS Proxy',
                 note: 'Base64 unscrambler with direct player fallback'
+            },
+            {
+                id: 'zee5',
+                name: 'Zee Network (Cloudfront Origin)',
+                type: 'sports',
+                region: 'IN',
+                priority: 5,
+                status: 'online',
+                protocol: 'DASH MPD (W3C ClearKey)',
+                note: '33+ Verified Zee Channels (Zee TV, Zee Cinema HD, &TV, Zee Bangla) on Cloudfront'
+            },
+            {
+                id: 'sports-highlights',
+                name: 'Major Sports Highlights & Replays',
+                type: 'sports',
+                region: 'GL',
+                priority: 6,
+                status: 'online',
+                protocol: 'REST / HLS Video Embeds',
+                note: 'ScoreBat Football & BCCI / Cricket replays & highlights feed'
+            },
+            {
+                id: 'bigg-boss',
+                name: 'Bigg Boss Reality Scraper',
+                type: 'sports',
+                region: 'IN',
+                priority: 7,
+                status: 'online',
+                protocol: 'Unpacked HLS / MP4 Stream',
+                note: 'Daily episodes & highlights for Hindi S18, Tamil S8, Telugu S8, Kannada S11'
             }
         ];
 
@@ -3974,6 +4007,51 @@ router.post('/scrapers/test', requireAdmin, async (req: Request, res: Response) 
                 channelCount: channels.length,
                 sampleChannel: channels[0]?.name || 'Star Sports 1 HD',
                 note: 'MDTV ClearKey DASH Feed Online'
+            });
+        }
+
+        if (scraperId === 'zee5') {
+            const channels = await syncZeeChannels(true);
+            const latencyMs = Date.now() - startTime;
+            return res.json({
+                status: 'success',
+                scraperId: 'zee5',
+                latencyMs,
+                channelCount: channels.length,
+                sampleChannel: channels[0]?.name || 'Zee TV',
+                streamUrl: channels[0]?.manifestUrl || '',
+                note: `Zee Cloudfront Origin: ${channels.length} channels ready with ClearKey DRM`
+            });
+        }
+
+        if (scraperId === 'sports-highlights') {
+            const highlights = await getAllSportsHighlights(true);
+            const latencyMs = Date.now() - startTime;
+            return res.json({
+                status: 'success',
+                scraperId: 'sports-highlights',
+                latencyMs,
+                highlightsCount: highlights.length,
+                sampleMatch: highlights[0]?.title || 'Premier League Highlights',
+                sampleEmbed: highlights[0]?.embedUrl || '',
+                note: `Sports Highlights Feed: ${highlights.length} matches / highlights indexed`
+            });
+        }
+
+        if (scraperId === 'bigg-boss') {
+            const seasons = getBiggBossSeasons();
+            const episodes = await getBiggBossEpisodes('bb-hindi-18');
+            const latencyMs = Date.now() - startTime;
+            return res.json({
+                status: 'success',
+                scraperId: 'bigg-boss',
+                latencyMs,
+                seasonsCount: seasons.length,
+                latestSeason: seasons[0]?.title || 'Bigg Boss Hindi S18',
+                episodesCount: episodes.length,
+                sampleEpisode: episodes[0]?.title || 'Episode 15',
+                sampleHost: episodes[0]?.hosts?.[0]?.name || 'Streamwish',
+                note: 'Bigg Boss Reality Scraper online with unpacker'
             });
         }
 

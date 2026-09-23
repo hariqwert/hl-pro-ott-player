@@ -1,5 +1,6 @@
 import axios from 'axios';
 import https from 'https';
+import { syncZeeChannels } from './zeeChannelsService';
 import fs from 'fs';
 import path from 'path';
 
@@ -459,6 +460,32 @@ export class JtvService {
             }
         } catch (e: any) {
             console.warn('[JtvService] Failed to fetch Hotstar channels:', e?.message || e);
+        }
+
+        // 4. Ingest Zee Network Channels (Cloudfront Broadpeak origin with ClearKey DRM)
+        try {
+            const zeeChs = await syncZeeChannels();
+            for (const z of zeeChs) {
+                allChannels.push({
+                    id: z.id,
+                    name: z.name,
+                    category: z.genre,
+                    genre: z.genre,
+                    stream_url: z.manifestUrl,
+                    cookie: '',
+                    token: '',
+                    full_stream_url: z.manifestUrl,
+                    manifest_url: z.manifestUrl,
+                    key_id: z.keyId,
+                    key: z.key,
+                    clearkey: z.licenseKey,
+                    logo: z.logo,
+                    source: 'jtv' as const
+                });
+            }
+            console.log(`[JtvService] Loaded ${zeeChs.length} Zee Network channels.`);
+        } catch (e: any) {
+            console.warn('[JtvService] Failed to load Zee channels:', e?.message || e);
         }
 
         cachedChannels = allChannels;

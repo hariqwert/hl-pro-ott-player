@@ -8,6 +8,9 @@ import { ChannelJsonService } from '../services/channelJsonService';
 import { getTimChannels, getTimLiveEvents, getAllTimStreams } from '../services/timstreamsService';
 import { JtvService } from '../services/jtvService';
 import { fetchFanCodeEvents, getFanCodeM3u } from '../services/fancodeService';
+import { getAllSportsHighlights, searchHighlights } from '../services/sportsHighlightsService';
+import { syncZeeChannels, getZeePlaylistM3u } from '../services/zeeChannelsService';
+import { getBiggBossSeasons, getBiggBossEpisodes, resolveBiggBossStream } from '../services/biggBossService';
 
 const router = Router();
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours for the channel list itself
@@ -532,6 +535,87 @@ router.get('/api/resolve_stream/:id', async (req: Request, res: Response) => {
         }
     } catch (err) {
         res.status(500).json({ status: 'error', message: 'Error resolving stream.' });
+    }
+});
+
+// GET /api/sports/highlights - Major sports replays and highlights
+router.get('/api/sports/highlights', async (req: Request, res: Response) => {
+    try {
+        const query = req.query.q as string;
+        const force = req.query.refresh === '1';
+        const highlights = query ? await searchHighlights(query) : await getAllSportsHighlights(force);
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.json({
+            status: 'success',
+            count: highlights.length,
+            highlights
+        });
+    } catch (err: any) {
+        res.status(500).json({ status: 'error', message: err?.message || 'Failed to fetch highlights' });
+    }
+});
+
+// GET /api/zee/channels - Working Zee Network live channels
+router.get('/api/zee/channels', async (req: Request, res: Response) => {
+    try {
+        const force = req.query.refresh === '1';
+        const channels = await syncZeeChannels(force);
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.json({
+            status: 'success',
+            count: channels.length,
+            channels
+        });
+    } catch (err: any) {
+        res.status(500).json({ status: 'error', message: err?.message || 'Failed to sync Zee channels' });
+    }
+});
+
+// GET /api/zee/playlist.m3u - Standard Kodi / IPTV M3U for Zee channels
+router.get('/api/zee/playlist.m3u', async (req: Request, res: Response) => {
+    try {
+        const m3u = await getZeePlaylistM3u();
+        res.setHeader('Content-Type', 'audio/x-mpegurl');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.send(m3u);
+    } catch (err: any) {
+        res.status(500).send('#EXTM3U\n# Error generating Zee playlist');
+    }
+});
+
+// GET /api/biggboss/seasons - Bigg Boss reality seasons catalog
+router.get('/api/biggboss/seasons', async (req: Request, res: Response) => {
+    try {
+        const seasons = getBiggBossSeasons();
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.json({ status: 'success', seasons });
+    } catch (err: any) {
+        res.status(500).json({ status: 'error', message: err?.message });
+    }
+});
+
+// GET /api/biggboss/episodes/:seasonId - Latest Bigg Boss episodes
+router.get('/api/biggboss/episodes/:seasonId', async (req: Request, res: Response) => {
+    try {
+        const rawParam = req.params.seasonId;
+        const seasonId = Array.isArray(rawParam) ? rawParam[0] : (rawParam || 'bb-hindi-18');
+        const episodes = await getBiggBossEpisodes(seasonId);
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.json({ status: 'success', seasonId, count: episodes.length, episodes });
+    } catch (err: any) {
+        res.status(500).json({ status: 'error', message: err?.message });
+    }
+});
+
+// GET /api/biggboss/resolve - Unpack and resolve direct playable stream
+router.get('/api/biggboss/resolve', async (req: Request, res: Response) => {
+    try {
+        const embedUrl = req.query.url as string;
+        const resolved = await resolveBiggBossStream(embedUrl);
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.json({ status: 'success', resolved });
+    } catch (err: any) {
+        res.status(500).json({ status: 'error', message: err?.message });
     }
 });
 
