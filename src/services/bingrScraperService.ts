@@ -697,10 +697,10 @@ export async function verifyStreamDuration(
 
         const diff = Math.abs(actualRuntime - expectedRuntime);
 
-        // Feature Film or 1-hour Drama (>= 40 mins)
-        if (expectedRuntime >= 40) {
-            // Reject fake 1-10 minute trailer clips pretending to be a full feature
-            if (actualRuntime < 12) {
+        // Feature Film / Movie Scraping (Strict +/- 10 minutes tolerance)
+        if (type === 'movie') {
+            // Reject fake 1-12 minute trailer clips pretending to be a full feature
+            if (actualRuntime < 12 && expectedRuntime >= 20) {
                 return {
                     isValid: false,
                     expected: expectedRuntime,
@@ -708,18 +708,18 @@ export async function verifyStreamDuration(
                     reason: `Trailer or sample clip rejected: stream is only ${Math.round(actualRuntime)}m, expected feature film of ~${expectedRuntime}m`
                 };
             }
-            // Allow up to +/- 35 minutes or 35% difference (covers theatrical cuts, extended cuts, credits)
-            const tolerance = Math.max(35, expectedRuntime * 0.35);
+            // Strict +/- 10 minutes tolerance rule
+            const tolerance = 10;
             if (diff > tolerance) {
                 return {
                     isValid: false,
                     expected: expectedRuntime,
                     actual: actualRuntime,
-                    reason: `Duration mismatch: expected ~${expectedRuntime}m, stream is ${Math.round(actualRuntime)}m (tolerance: +/-${Math.round(tolerance)}m)`
+                    reason: `Duration mismatch: expected ~${expectedRuntime}m, stream is ${Math.round(actualRuntime)}m (Strict movie tolerance: +/-10m, diff was ${Math.round(diff)}m)`
                 };
             }
         } else {
-            // Short TV episode / Anime / Sitcom (< 40 mins)
+            // TV episode / Anime / Sitcom
             if (actualRuntime < 4) {
                 return {
                     isValid: false,
@@ -728,8 +728,8 @@ export async function verifyStreamDuration(
                     reason: `Teaser clip rejected: stream is only ${Math.round(actualRuntime)}m, expected episode of ~${expectedRuntime}m`
                 };
             }
-            // Prevent serving a 2-hour full movie when an episode was requested
-            if (actualRuntime > 115) {
+            // Prevent serving a 2-hour full movie when a short episode was requested
+            if (expectedRuntime < 40 && actualRuntime > 115) {
                 return {
                     isValid: false,
                     expected: expectedRuntime,
@@ -737,14 +737,14 @@ export async function verifyStreamDuration(
                     reason: `Wrong media: stream is ${Math.round(actualRuntime)}m, expected short episode of ~${expectedRuntime}m`
                 };
             }
-            // Allow up to +/- 18 minutes or 50% difference (covers anime 1-hour specials, double episodes, recaps)
-            const tolerance = Math.max(18, expectedRuntime * 0.50);
+            // Strict tolerance capped at 10 minutes for TV episodes as well
+            const tolerance = Math.min(10, Math.max(5, expectedRuntime * 0.25));
             if (diff > tolerance) {
                 return {
                     isValid: false,
                     expected: expectedRuntime,
                     actual: actualRuntime,
-                    reason: `Duration mismatch: expected ~${expectedRuntime}m, stream is ${Math.round(actualRuntime)}m (tolerance: +/-${Math.round(tolerance)}m)`
+                    reason: `Duration mismatch: expected ~${expectedRuntime}m, stream is ${Math.round(actualRuntime)}m (Strict tolerance: +/-${Math.round(tolerance)}m, diff was ${Math.round(diff)}m)`
                 };
             }
         }
@@ -772,14 +772,18 @@ export async function getM3u8Duration(url: string, depth = 0): Promise<number | 
             parsedOrigin = parsed.origin;
         } catch (_) {}
 
+        const headers: Record<string, string> = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+            'Accept': '*/*'
+        };
+        if (fetchUrl.includes('bingr.one') || fetchUrl.includes('api.bingr')) {
+            headers['Referer'] = 'https://bingr.one/';
+            headers['Origin'] = 'https://bingr.one';
+        }
+
         const res = await axios.get(fetchUrl, {
             timeout: 6000,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-                'Referer': fetchUrl.includes('bingr') ? 'https://bingr.one/' : `${parsedOrigin}/`,
-                'Origin': fetchUrl.includes('bingr') ? 'https://bingr.one' : parsedOrigin,
-                'Accept': '*/*'
-            }
+            headers
         });
         const content = res.data;
         if (typeof content !== 'string') return null;
@@ -814,12 +818,7 @@ export async function getM3u8Duration(url: string, depth = 0): Promise<number | 
             return null;
         }
 
-        // 2. Media playlist: sum #EXTINF segments (supports integers and floats)
-        // If the segments are image files (.png, .jpg, .webp, tiles/), this is a thumbnail storyboard, NOT video media!
-        if (content.includes('.png') || content.includes('.jpg') || content.includes('.jpeg') || content.includes('.webp') || content.includes('tiles/')) {
-            return null;
-        }
-
+        // 2. Media playlist: sum #EXTINF segments (supports video chunks, TS, fMP4, and storyboard tiles)
         const extinfRegex = /#EXTINF:\s*([0-9]+(?:\.[0-9]+)?)/gi;
         let match: RegExpExecArray | null;
         let totalSeconds = 0;
