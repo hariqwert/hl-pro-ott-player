@@ -5845,14 +5845,15 @@ async function loadLiveSportsSchedule(force = false) {
     if (icon) icon.classList.add('animate-spin');
 
     try {
-        const [streamicRes, timEventsRes, jtvEventsRes, addedChannelsRes, adminSportsRes, highlightsRes, zeeRes] = await Promise.allSettled([
+        const [streamicRes, timEventsRes, jtvEventsRes, addedChannelsRes, adminSportsRes, highlightsRes, zeeRes, fancodeLiveRes] = await Promise.allSettled([
             fetch(`/api/streamic/schedule${force ? '?force=1' : ''}`).then(r => r.json()),
             fetch(`/api/sports/live-events${force ? '?refresh=1' : ''}`).then(r => r.json()),
             fetch(`/api/live/events`).then(r => r.json()),
             fetch(`/api/sports/channels`).then(r => r.json()),
             fetch(`/api/sports`).then(r => r.json()),
             fetch(`/api/sports/highlights${force ? '?refresh=1' : ''}`).then(r => r.json()),
-            fetch(`/api/zee/channels${force ? '?refresh=1' : ''}`).then(r => r.json())
+            fetch(`/api/zee/channels${force ? '?refresh=1' : ''}`).then(r => r.json()),
+            fetch(`/api/fancode/live${force ? '?refresh=1' : ''}`).then(r => r.json())
         ]);
 
         if (highlightsRes.status === 'fulfilled' && highlightsRes.value?.status === 'success' && Array.isArray(highlightsRes.value.highlights)) {
@@ -5861,10 +5862,68 @@ async function loadLiveSportsSchedule(force = false) {
         if (zeeRes.status === 'fulfilled' && zeeRes.value?.status === 'success' && Array.isArray(zeeRes.value.channels)) {
             window.zeeChannels = zeeRes.value.channels;
         }
+        if (fancodeLiveRes.status === 'fulfilled' && fancodeLiveRes.value?.status === 'success' && Array.isArray(fancodeLiveRes.value.events)) {
+            window.fancodeLiveMatches = fancodeLiveRes.value.events;
+        }
 
         let allEvents = [];
+        // High-Priority: Place active FanCode live streams at the very top of allEvents
+        if (window.fancodeLiveMatches && window.fancodeLiveMatches.length) {
+            window.fancodeLiveMatches.forEach(fc => {
+                allEvents.push({
+                    id: `fancode_${fc.matchId || fc.id}`,
+                    title: fc.title,
+                    rawTitle: fc.title,
+                    sportName: fc.sportCategory || 'Cricket',
+                    sportEmoji: '🏏',
+                    category: (fc.sportCategory || 'cricket').toLowerCase(),
+                    league: fc.eventName || 'FanCode Live Stream',
+                    countryCode: 'IN',
+                    startTime: Math.floor(Date.now() / 1000),
+                    endTime: Math.floor(Date.now() / 1000) + 14400,
+                    durationMinutes: 240,
+                    timeIST: 'LIVE NOW',
+                    dateIST: 'Today',
+                    fullIST: 'Today, LIVE NOW',
+                    status: 'LIVE',
+                    isLive: true,
+                    isStartingSoon: false,
+                    isEnded: false,
+                    canWatch: true,
+                    countdown: 'LIVE NOW',
+                    hasEnglish: true,
+                    isFamous: true,
+                    source: 'FANCODE_LIVE',
+                    thumbnail: fc.thumbnail,
+                    userHasChannel: true,
+                    primaryPlayUrl: fc.playUrl,
+                    primaryM3u8Url: fc.streamUrl,
+                    primaryChannelName: 'FanCode 1080p Live',
+                    isFanCode: true,
+                    channels: [{
+                        channelName: 'FanCode 1080p Feed',
+                        language: 'English',
+                        isEnglish: true,
+                        userHasChannel: true,
+                        userChannelUrl: fc.streamUrl,
+                        m3u8Url: fc.streamUrl,
+                        playUrl: fc.playUrl,
+                        streams: [{ quality: '1080p', embedUrl: fc.playUrl }]
+                    }],
+                    myConvertedChannels: [{
+                        channelName: 'FanCode 1080p Stream',
+                        url: fc.streamUrl,
+                        m3u8Url: fc.streamUrl,
+                        playUrl: fc.playUrl,
+                        matchType: 'DIRECT_MATCH',
+                        reason: 'Live FanCode Broadcast'
+                    }]
+                });
+            });
+        }
+
         if (streamicRes.status === 'fulfilled' && streamicRes.value?.status === 'success' && Array.isArray(streamicRes.value.events)) {
-            allEvents = streamicRes.value.events;
+            allEvents = allEvents.concat(streamicRes.value.events);
         }
 
         // Seamlessly merge Live Events from https://timst.cfd/api/streams
@@ -7183,8 +7242,48 @@ function renderLiveNowGrid() {
         if (zeeCards.length > 0) {
             shelvesHtml += createShelf('📺 Zee Network Live (Cloudfront ClearKey)', zeeCards, true);
         }
-        if (fancodeMatches.length > 0) {
-            shelvesHtml += createShelf('🏏 FanCode Live Matches', fancodeMatches, true);
+        const activeFancodeList = (fancodeMatches && fancodeMatches.length > 0) ? fancodeMatches : (window.fancodeLiveMatches || []).map(fc => ({
+            id: `fancode_${fc.matchId || fc.id}`,
+            title: fc.title,
+            rawTitle: fc.title,
+            sportName: fc.sportCategory || 'Cricket',
+            sportEmoji: '🏏',
+            category: 'cricket',
+            league: fc.eventName || 'FanCode Live Stream',
+            countryCode: 'IN',
+            startTime: Math.floor(Date.now() / 1000),
+            endTime: Math.floor(Date.now() / 1000) + 14400,
+            durationMinutes: 240,
+            timeIST: 'LIVE NOW',
+            dateIST: 'Today',
+            fullIST: 'Today, LIVE NOW',
+            status: 'LIVE',
+            isLive: true,
+            isStartingSoon: false,
+            isEnded: false,
+            canWatch: true,
+            countdown: 'LIVE NOW',
+            hasEnglish: true,
+            isFamous: true,
+            source: 'FANCODE_LIVE',
+            thumbnail: fc.thumbnail,
+            userHasChannel: true,
+            primaryPlayUrl: fc.playUrl,
+            primaryM3u8Url: fc.streamUrl,
+            primaryChannelName: 'FanCode 1080p Live',
+            isFanCode: true,
+            channels: [{
+                channelName: 'FanCode 1080p Feed',
+                language: 'English',
+                isEnglish: true,
+                userHasChannel: true,
+                userChannelUrl: fc.streamUrl,
+                playUrl: fc.playUrl
+            }]
+        }));
+
+        if (activeFancodeList.length > 0) {
+            shelvesHtml += createShelf('🏏 FanCode Live Matches (1080p Streams)', activeFancodeList, true);
         }
         if (mdtvChannelsList.length > 0) {
             shelvesHtml += createShelf('Special Channels', mdtvChannelsList, true);

@@ -538,6 +538,24 @@ router.get('/api/resolve_stream/:id', async (req: Request, res: Response) => {
     }
 });
 
+// GET /api/fancode/live - Genuine ongoing FanCode live matches with playable HLS streams
+router.get('/api/fancode/live', async (req: Request, res: Response) => {
+    try {
+        const force = req.query.refresh === '1';
+        const { live, all } = await fetchFanCodeEvents(force);
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.json({
+            status: 'success',
+            count: live.length,
+            totalMatches: all.length,
+            events: live,
+            allMatches: all
+        });
+    } catch (err: any) {
+        res.status(500).json({ status: 'error', message: err?.message || 'Failed to fetch FanCode live events' });
+    }
+});
+
 // GET /api/sports/highlights - Major sports replays and highlights
 router.get('/api/sports/highlights', async (req: Request, res: Response) => {
     try {
