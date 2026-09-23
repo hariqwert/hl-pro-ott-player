@@ -313,13 +313,13 @@ export function rewriteHlsManifest(
         } else if (line.startsWith('#EXTINF') && line.includes(',')) {
             const parts = line.split(',');
             const extinf = parts[0];
-            const url = parts.slice(1).join(',').trim();
+            const potentialUrl = parts.slice(1).join(',').trim();
 
-            if (url && (url.startsWith('http://') || url.startsWith('https://') || url.includes('.ts') || url.includes('.m3u8') || url.includes('.m4s') || url.includes('.aac') || url.includes('.mp4') || !url.startsWith('#'))) {
-                const is_playlist = is_master_manifest || url.includes('.m3u8') || url.includes('.m3u');
+            if (potentialUrl && (potentialUrl.startsWith('http://') || potentialUrl.startsWith('https://'))) {
+                const is_playlist = is_master_manifest || potentialUrl.includes('.m3u8') || potentialUrl.includes('.m3u');
                 const param_name = is_playlist ? 'wanda' : 'cassie';
 
-                const finalUrl = resolveM3u8Url(currentManifestUrl, url);
+                const finalUrl = resolveM3u8Url(currentManifestUrl, potentialUrl);
                 const stalkerEnc = StalkerAPI.scarletWitch('encrypt', finalUrl.substring(0, finalUrl.lastIndexOf('/') + 1));
                 const paramEnc = StalkerAPI.scarletWitch('encrypt', finalUrl);
 
@@ -417,7 +417,10 @@ export async function streamUrl(url: string, headersArray: string[], req: Reques
         headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
     } else if (url.includes('phantemlis') || url.includes('xameleon') || url.includes('romponalis') || url.includes('daddy') || url.includes('dlhd') || url.includes('cloudflarestorage.com')) {
         headers['Referer'] = 'https://hamis.romponalis.st/';
-        headers['Origin'] = 'https://hamis.romponalis.st/';
+    } else if (url.includes('sonydaimenew') || url.includes('akamaized.net')) {
+        headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+        headers['Referer'] = 'https://www.sonyliv.com/';
+        headers['Origin'] = 'https://www.sonyliv.com';
     } else if (url.includes('slivcdn.com') || url.includes('kliv.in') || url.includes('dishmt.com') || url.includes('sonyliv.com')) {
         headers['User-Agent'] = 'VLC/3.0.18';
         headers['Referer'] = 'https://kliv.in/';
@@ -986,6 +989,9 @@ export async function handleLiveStream(req: Request, res: Response) { console.lo
             headersArray.push('Referer: https://timst.cfd/');
             headersArray.push('Origin: https://timst.cfd');
             headersArray.push('User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+        } else if (urlToCheck && (urlToCheck.includes('sonydaimenew') || urlToCheck.includes('akamaized.net'))) {
+            headersArray.push('Referer: https://www.sonyliv.com/');
+            headersArray.push('Origin: https://www.sonyliv.com');
         } else if (urlToCheck && (urlToCheck.includes('kliv.in') || urlToCheck.includes('slivcdn.com') || urlToCheck.includes('dishmt.com') || urlToCheck.includes('sonyliv.com'))) {
             headersArray = headersArray.filter(h => !h.toLowerCase().startsWith('user-agent:'));
             headersArray.push('User-Agent: VLC/3.0.18');

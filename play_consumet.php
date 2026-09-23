@@ -1362,6 +1362,85 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                         };
                         list.appendChild(btn);
                     });
+                } else if (window.shakaPlayer && typeof window.shakaPlayer.getVariantTracks === 'function' && window.shakaPlayer.getVariantTracks().length > 0) {
+                    const tracks = window.shakaPlayer.getVariantTracks();
+                    const isAbr = window.shakaPlayer.getConfiguration().abr.enabled;
+                    const activeTrack = tracks.find(t => t.active);
+
+                    const autoBtn = document.createElement('button');
+                    autoBtn.className = `w-full text-left px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between cursor-pointer transition-all ${isAbr ? 'bg-red-600 text-white' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`;
+                    autoBtn.innerHTML = `<span>Auto (Adaptive 1080p/HD)</span> ${isAbr ? '<i data-lucide="check" class="w-4 h-4"></i>' : ''}`;
+                    autoBtn.onclick = () => {
+                        window.shakaPlayer.configure({ abr: { enabled: true } });
+                        showIndicator('Quality: Auto Adaptive');
+                        closeQualityModal();
+                    };
+                    list.appendChild(autoBtn);
+
+                    const uniqueHeights = Array.from(new Set(tracks.map(t => t.height).filter(Boolean))).sort((a, b) => b - a);
+                    uniqueHeights.forEach(h => {
+                        const matchedTrack = tracks.find(t => t.height === h);
+                        const isCurrent = !isAbr && activeTrack && activeTrack.height === h;
+                        let label = `${h}p`;
+                        let badge = '';
+                        if (h >= 1080) {
+                            label = '1080p Full HD';
+                            badge = '<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold text-[10px]">FHD</span>';
+                        } else if (h >= 720) {
+                            label = '720p HD';
+                            badge = '<span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 font-bold text-[10px]">HD</span>';
+                        } else if (h >= 540) {
+                            label = '540p qHD';
+                            badge = '<span class="px-2 py-0.5 rounded bg-zinc-700 text-zinc-300 font-bold text-[10px]">SD</span>';
+                        }
+                        const btn = document.createElement('button');
+                        btn.className = `w-full text-left px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between cursor-pointer transition-all ${isCurrent ? 'bg-red-600 text-white' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`;
+                        btn.innerHTML = `<div class="flex items-center gap-2"><span>${label}</span> ${badge}</div> ${isCurrent ? '<i data-lucide="check" class="w-4 h-4"></i>' : ''}`;
+                        btn.onclick = () => {
+                            window.shakaPlayer.configure({ abr: { enabled: false } });
+                            window.shakaPlayer.selectVariantTrack(matchedTrack, true);
+                            showIndicator('Quality: ' + label);
+                            closeQualityModal();
+                        };
+                        list.appendChild(btn);
+                    });
+                } else if (window.dashPlayer && typeof window.dashPlayer.getBitrateInfoListFor === 'function') {
+                    const bitrates = window.dashPlayer.getBitrateInfoListFor('video');
+                    const autoSwitch = window.dashPlayer.getSettings()?.streaming?.abr?.autoSwitchBitrate?.video !== false;
+                    const currentQual = window.dashPlayer.getQualityFor('video');
+
+                    const autoBtn = document.createElement('button');
+                    autoBtn.className = `w-full text-left px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between cursor-pointer transition-all ${autoSwitch ? 'bg-red-600 text-white' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`;
+                    autoBtn.innerHTML = `<span>Auto (Adaptive 1080p/HD)</span> ${autoSwitch ? '<i data-lucide="check" class="w-4 h-4"></i>' : ''}`;
+                    autoBtn.onclick = () => {
+                        window.dashPlayer.updateSettings({ streaming: { abr: { autoSwitchBitrate: { video: true } } } });
+                        showIndicator('Quality: Auto Adaptive');
+                        closeQualityModal();
+                    };
+                    list.appendChild(autoBtn);
+
+                    bitrates.forEach((b, idx) => {
+                        let label = `${b.height || 'SD'}p`;
+                        let badge = '';
+                        if (b.height >= 1080) {
+                            label = '1080p Full HD';
+                            badge = '<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold text-[10px]">FHD</span>';
+                        } else if (b.height >= 720) {
+                            label = '720p HD';
+                            badge = '<span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 font-bold text-[10px]">HD</span>';
+                        }
+                        const isCurrent = !autoSwitch && currentQual === idx;
+                        const btn = document.createElement('button');
+                        btn.className = `w-full text-left px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between cursor-pointer transition-all ${isCurrent ? 'bg-red-600 text-white' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`;
+                        btn.innerHTML = `<div class="flex items-center gap-2"><span>${label}</span> ${badge}</div> ${isCurrent ? '<i data-lucide="check" class="w-4 h-4"></i>' : ''}`;
+                        btn.onclick = () => {
+                            window.dashPlayer.updateSettings({ streaming: { abr: { autoSwitchBitrate: { video: false } } } });
+                            window.dashPlayer.setQualityFor('video', idx);
+                            showIndicator('Quality: ' + label);
+                            closeQualityModal();
+                        };
+                        list.appendChild(btn);
+                    });
                 } else {
                     list.innerHTML = `
                         <div class="space-y-2 py-2">
@@ -2155,7 +2234,7 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                             if (ev && ev.stream_url) {
                                 src = ev.stream_url;
                                 resolvedSrc = src;
-                                if (ev.source === 'fancode' || ev.badge === 'FANCODE' || src.includes('fancode.com') || src.includes('akamaized.net/mumbai') || src.includes('dai-fancode.pages.dev') || src.includes('livetv.hotstar.com') || src.includes('dishmt.slivcdn.com')) {
+                                if (ev.source === 'fancode' || ev.badge === 'FANCODE' || src.includes('fancode') || src.includes('in-mc-flive') || src.includes('sonydaimenew') || src.includes('akamaized.net') || src.includes('sonyliv') || src.includes('slivcdn') || src.includes('dai-fancode') || src.includes('livetv.hotstar.com') || src.includes('live09p.hotstar.com') || src.includes('dishmt')) {
                                     src = `/api/proxy/fancode?url=${encodeURIComponent(src)}`;
                                     resolvedSrc = src;
                                 }
@@ -2282,7 +2361,7 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                 if (src && !src.includes('/api/proxy/') && !src.includes('/proxy?')) {
                     const sLower = src.toLowerCase();
                     const isMpdManifest = sLower.includes('.mpd') || sLower.includes('manifest');
-                    if (!isMpdManifest && (sLower.includes('fancode.com') || sLower.includes('akamaized.net/mumbai') || sLower.includes('dai-fancode.pages.dev') || sLower.includes('sonyliv.com') || sLower.includes('dishmt.slivcdn.com'))) {
+                    if (!isMpdManifest && (sLower.includes('fancode') || sLower.includes('in-mc-flive') || sLower.includes('sonydaimenew') || sLower.includes('akamaized.net') || sLower.includes('sonyliv') || sLower.includes('slivcdn') || sLower.includes('dai-fancode') || sLower.includes('livetv.hotstar.com') || sLower.includes('live09p.hotstar.com') || sLower.includes('dishmt'))) {
                         src = `/api/proxy/fancode?url=${encodeURIComponent(src)}`;
                         resolvedSrc = src;
                     }
@@ -2806,6 +2885,19 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                                 console.warn("[Shaka Engine] Ignored invalid ClearKey DRM keys (both must be 32 hex chars):", cleanKeyId, cleanKey);
                             }
                         }
+
+                        // Configure initial bandwidth estimate to 15 Mbps for immediate FHD 1080p
+                        shakaPlayer.configure({
+                            abr: {
+                                enabled: true,
+                                defaultBandwidthEstimate: 15000000
+                            },
+                            streaming: {
+                                rebufferingGoal: 2,
+                                bufferingGoal: 10,
+                                bufferBehind: 30
+                            }
+                        });
 
                         // Configure Request Filter for Akamai token injection on chunks
                         shakaPlayer.getNetworkingEngine().registerRequestFilter((type, request) => {

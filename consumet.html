@@ -7008,7 +7008,9 @@ function createNetflixSportCard(e, isShelf = false) {
 
     const widthClass = isShelf ? 'w-44 sm:w-52 md:w-56 shrink-0' : 'w-full';
     const thumbnailContent = buildVsMatchThumbnailHtml(e, false);
-    const cardClickAction = hasLiveBroadcast ? `window.location.href='${playUrl}'` : `openSportMatchOvalModal('${e.id}', 'score')`;
+    const safeEId = encodeURIComponent(e.id || '');
+    const safePlayUrl = (playUrl || '').replace(/'/g, "\\'");
+    const cardClickAction = hasLiveBroadcast ? `window.location.href='${safePlayUrl}'` : `openSportMatchOvalModal(decodeURIComponent('${safeEId}'), 'score')`;
 
     return `
         <div class="netflix-card group cursor-pointer ${widthClass} flex flex-col rounded-2xl p-2 bg-gradient-to-b from-zinc-900/90 via-zinc-950 to-black border border-white/10 hover:border-red-500/60 transition-all duration-300 hover:scale-[1.03] hover:shadow-2xl hover:shadow-red-500/15" onclick="${cardClickAction}">
@@ -7024,7 +7026,7 @@ function createNetflixSportCard(e, isShelf = false) {
 
                 <!-- Info Button (Top-Right) -->
                 <div class="absolute top-2 right-2 z-20">
-                    <button type="button" onclick="event.stopPropagation(); openSportMatchOvalModal('${e.id}', 'info')" title="Match Feeds & Details" class="w-7 h-7 rounded-full bg-black/80 hover:bg-white text-zinc-300 hover:text-black flex items-center justify-center backdrop-blur-md border border-white/15 transition-all shadow-lg active:scale-90">
+                    <button type="button" onclick="event.stopPropagation(); openSportMatchOvalModal(decodeURIComponent('${safeEId}'), 'info')" title="Match Feeds & Details" class="w-7 h-7 rounded-full bg-black/80 hover:bg-white text-zinc-300 hover:text-black flex items-center justify-center backdrop-blur-md border border-white/15 transition-all shadow-lg active:scale-90">
                         <i data-lucide="info" class="w-3.5 h-3.5"></i>
                     </button>
                 </div>
@@ -7035,7 +7037,7 @@ function createNetflixSportCard(e, isShelf = false) {
                         ${e.league || e.sportName || 'Sports'}
                     </span>
                     ${hasScoreBtn ? `
-                        <button type="button" onclick="event.stopPropagation(); openSportMatchOvalModal('${e.id}', 'score')" title="Match Scorecard" class="px-2.5 py-0.5 rounded-full bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-400/40 text-[9px] font-black transition-all flex items-center gap-1 shadow-sm shrink-0 backdrop-blur-md">
+                        <button type="button" onclick="event.stopPropagation(); openSportMatchOvalModal(decodeURIComponent('${safeEId}'), 'score')" title="Match Scorecard" class="px-2.5 py-0.5 rounded-full bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-400/40 text-[9px] font-black transition-all flex items-center gap-1 shadow-sm shrink-0 backdrop-blur-md">
                             <span>${isCricket ? '🏏 Score' : '⚽ Score'}</span>
                         </button>
                     ` : ''}
@@ -7103,6 +7105,7 @@ function renderLiveNowHeroSpotlight(events) {
     const isFootball = (hero.category || '').toLowerCase().includes('football') || (hero.sportName || '').toLowerCase().includes('football') || (hero.category || '').toLowerCase().includes('soccer');
     const hasScoreBtn = isCricket || isFootball;
 
+    const safeHeroId = encodeURIComponent(hero.id || '');
     const otherSpotlights = pool.filter((_, idx) => idx !== window.liveNowSpotlightIndex).slice(0, 2);
     const heroThumbHtml = buildVsMatchThumbnailHtml(hero, true);
 
@@ -7149,19 +7152,19 @@ function renderLiveNowHeroSpotlight(events) {
                                 <span>Play Now</span>
                             </a>
                         ` : `
-                            <button type="button" onclick="openSportMatchOvalModal('${hero.id}', 'score')" class="px-6 py-2 rounded-full bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition-all flex items-center gap-2 shadow-lg">
+                            <button type="button" onclick="openSportMatchOvalModal(decodeURIComponent('${safeHeroId}'), 'score')" class="px-6 py-2 rounded-full bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition-all flex items-center gap-2 shadow-lg">
                                 <span class="text-xs">📊</span>
                                 <span>Scorecard</span>
                             </button>
                         `}
                         
-                        <button type="button" onclick="openSportMatchOvalModal('${hero.id}', 'info')" class="px-4 py-2 rounded-full bg-black hover:bg-zinc-900 text-zinc-200 hover:text-white text-xs font-bold transition-colors border border-zinc-800 flex items-center gap-1.5 shadow">
+                        <button type="button" onclick="openSportMatchOvalModal(decodeURIComponent('${safeHeroId}'), 'info')" class="px-4 py-2 rounded-full bg-black hover:bg-zinc-900 text-zinc-200 hover:text-white text-xs font-bold transition-colors border border-zinc-800 flex items-center gap-1.5 shadow">
                             <i data-lucide="info" class="w-3.5 h-3.5"></i>
                             <span>Match Info</span>
                         </button>
 
                         ${hasScoreBtn ? `
-                            <button type="button" onclick="openSportMatchOvalModal('${hero.id}', 'score')" class="px-4 py-2 rounded-full bg-black hover:bg-zinc-900 text-amber-300 border border-zinc-800 hover:border-amber-500/40 text-xs font-bold transition-colors flex items-center gap-1.5 shadow">
+                            <button type="button" onclick="openSportMatchOvalModal(decodeURIComponent('${safeHeroId}'), 'score')" class="px-4 py-2 rounded-full bg-black hover:bg-zinc-900 text-amber-300 border border-zinc-800 hover:border-amber-500/40 text-xs font-bold transition-colors flex items-center gap-1.5 shadow">
                                 <span>${isCricket ? '🏏 Live Score' : '⚽ Match Score'}</span>
                             </button>
                         ` : ''}
@@ -7185,7 +7188,9 @@ function renderLiveNowHeroSpotlight(events) {
                     ${otherSpotlights.map(s => {
                         const sHasBroadcast = Boolean(s.canWatch && s.primaryPlayUrl);
                         const sPlayUrl = sHasBroadcast ? s.primaryPlayUrl : '#';
-                        const sClick = sHasBroadcast ? `window.location.href='${sPlayUrl}'` : `openSportMatchOvalModal('${s.id}', 'score')`;
+                        const sSafeId = encodeURIComponent(s.id || '');
+                        const sSafePlayUrl = (sPlayUrl || '').replace(/'/g, "\\'");
+                        const sClick = sHasBroadcast ? `window.location.href='${sSafePlayUrl}'` : `openSportMatchOvalModal(decodeURIComponent('${sSafeId}'), 'score')`;
                         const sIsCricket = (s.category || '').toLowerCase().includes('cricket') || s.category === 'krykiet';
                         const sIsFootball = (s.category || '').toLowerCase().includes('football');
                         return `
@@ -7201,11 +7206,11 @@ function renderLiveNowHeroSpotlight(events) {
                                     <span class="text-[10px] text-zinc-400 font-semibold block truncate">${s.league || s.sportName}</span>
                                     <h4 class="text-xs font-bold text-white group-hover:text-red-400 transition-colors line-clamp-2">${s.title}</h4>
                                     <div class="flex items-center gap-2 pt-0.5">
-                                        <button type="button" onclick="event.stopPropagation(); openSportMatchOvalModal('${s.id}', 'info')" class="text-[10px] font-bold text-zinc-300 hover:text-white bg-black hover:bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-800">
+                                        <button type="button" onclick="event.stopPropagation(); openSportMatchOvalModal(decodeURIComponent('${sSafeId}'), 'info')" class="text-[10px] font-bold text-zinc-300 hover:text-white bg-black hover:bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-800">
                                             Info
                                         </button>
                                         ${(sIsCricket || sIsFootball) ? `
-                                            <button type="button" onclick="event.stopPropagation(); openSportMatchOvalModal('${s.id}', 'score')" class="text-[10px] font-bold text-amber-300 hover:text-black bg-black hover:bg-amber-500/20 px-2 py-0.5 rounded-full border border-zinc-800">
+                                            <button type="button" onclick="event.stopPropagation(); openSportMatchOvalModal(decodeURIComponent('${sSafeId}'), 'score')" class="text-[10px] font-bold text-amber-300 hover:text-black bg-black hover:bg-amber-500/20 px-2 py-0.5 rounded-full border border-zinc-800">
                                                 Score
                                             </button>
                                         ` : ''}

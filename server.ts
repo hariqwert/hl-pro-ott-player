@@ -6834,7 +6834,7 @@ function getUpstreamProxyHeaders(targetUrlStr: string): Record<string, string> {
         }
     }
 
-    const isSonyLiv = u.hostname.includes('sonyliv.com') || u.hostname.includes('akamaized.net') || u.hostname.includes('sonymtmnew');
+    const isSonyLiv = u.hostname.includes('sonyliv.com') || u.hostname.includes('akamaized.net') || u.hostname.includes('sonymtmnew') || u.hostname.includes('sonydaimenew') || u.hostname.includes('slivcdn.com');
     if (isSonyLiv) {
         headers['User-Agent'] = headers['User-Agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0';
         headers['Referer'] = headers['Referer'] || 'https://www.sonyliv.com/';
