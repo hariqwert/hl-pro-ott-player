@@ -236,6 +236,8 @@ export async function getOrUpdatePlaylist(force: boolean = false): Promise<strin
         const streamUrl = ch.stream_url || ch.channel_id || ch.url;
         if (!streamUrl) return;
         const cleanUrl = String(streamUrl).trim();
+        // Immediately discard dead/expired kliv.in streams
+        if (cleanUrl.includes('kliv.in') || cleanUrl.includes('playlivtv.whf.bz') || cleanUrl.includes('Expired.m3u8')) return;
         if (seenUrls.has(cleanUrl)) return;
         seenUrls.add(cleanUrl);
         data.push({

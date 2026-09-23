@@ -488,5 +488,19 @@
     "http_status": 500,
     "quarantined_at": "2026-09-22T13:29:15.808Z",
     "last_checked_at": "2026-09-22T13:29:24.862Z"
+  },
+  {
+    "id": "q_562b504542dfea3f983259219b1d7af9",
+    "name": "tim_sportdigital-fussball",
+    "logo": "",
+    "stream_url": "https://juxrd.hundxvision.co.uk/main/secure/8121731f47f4096db50ae515dab8640ce237e962527b4133a0b8e10af7539cce/1790186773/sportdigitalfussball-de.m3u8",
+    "group": "Unreachable / Dead Feed",
+    "playlist_id": "auto_quarantine",
+    "playlist_name": "Dynamic Live Proxy Failure",
+    "playlist_file": "",
+    "error_reason": "Upstream returned HTTP 404",
+    "http_status": 404,
+    "quarantined_at": "2026-09-23T15:36:13.937Z",
+    "last_checked_at": "2026-09-23T15:36:13.937Z"
   }
 ]

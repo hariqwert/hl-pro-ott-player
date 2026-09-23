@@ -1,5 +1,5 @@
 {
-  "lastScanTime": "2026-09-23T13:24:11.779Z",
+  "lastScanTime": "2026-09-23T15:45:10.907Z",
   "scanIntervalMinutes": 5,
   "autoSwitchEnabled": true,
   "records": [
@@ -8,8 +8,8 @@
       "name": "Global News HD",
       "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
       "status": "healthy",
-      "latencyMs": 343,
-      "lastChecked": "2026-09-23T13:24:11.070Z",
+      "latencyMs": 704,
+      "lastChecked": "2026-09-23T15:45:10.821Z",
       "consecutiveFailures": 0,
       "backupUrl": "",
       "isBackupSwitched": false
@@ -19,9 +19,9 @@
       "name": "Action Cinema",
       "url": "https://live-par-2-cdn-alt.livepush.io/live/bigbuckbunnyclip/index.m3u8",
       "status": "backup_active",
-      "latencyMs": 297,
-      "lastChecked": "2026-09-23T13:24:11.068Z",
-      "consecutiveFailures": 182,
+      "latencyMs": 282,
+      "lastChecked": "2026-09-23T15:45:10.409Z",
+      "consecutiveFailures": 200,
       "errorReason": "ENOTFOUND",
       "backupUrl": "",
       "isBackupSwitched": true
@@ -31,8 +31,8 @@
       "name": "Sports 24/7",
       "url": "https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8",
       "status": "healthy",
-      "latencyMs": 1023,
-      "lastChecked": "2026-09-23T13:24:11.779Z",
+      "latencyMs": 782,
+      "lastChecked": "2026-09-23T15:45:10.907Z",
       "consecutiveFailures": 0,
       "backupUrl": "",
       "isBackupSwitched": false
