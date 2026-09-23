@@ -1665,19 +1665,64 @@ No EPG data has been retrieved yet. Click the <strong>Load Program Guide</strong
 </section>
 
 <!-- 8. EPG VIEW -->
-<section id="view-epg" class="hidden space-y-8 animate-fade-in">
-    <div class="flex items-center justify-between">
-        <h1 class="text-3xl font-black text-white flex items-center gap-3"><i data-lucide="calendar" class="w-8 h-8 text-amber-500"></i> TV Guide</h1>
+<section id="view-epg" class="hidden space-y-6 animate-fade-in">
+    <!-- Header with Network Switcher -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
+        <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[10px] font-black uppercase tracking-wider mb-2">
+                <i data-lucide="radio" class="w-3.5 h-3.5 animate-pulse"></i> LIVE ELECTRONIC PROGRAM GUIDE
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-black text-white flex items-center gap-3">
+                <i data-lucide="calendar" class="w-7 h-7 text-amber-500"></i> TV Program Guide
+            </h1>
+            <p class="text-xs text-zinc-400 mt-1">Live schedules, showtimes & instant streaming for Star Sports & Sony Sports</p>
+        </div>
+
+        <!-- Network Selector Tabs -->
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+            <button onclick="filterEpgNetwork('star')" id="epgTab-star" class="epg-net-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-amber-500 text-black shadow-lg shadow-amber-500/20 shrink-0 flex items-center gap-1.5">
+                <i data-lucide="star" class="w-3.5 h-3.5 fill-black"></i> Star Sports
+            </button>
+            <button onclick="filterEpgNetwork('sony')" id="epgTab-sony" class="epg-net-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-white/10 text-zinc-300 hover:text-white hover:bg-white/20 shrink-0 flex items-center gap-1.5">
+                <i data-lucide="tv" class="w-3.5 h-3.5"></i> Sony Sports
+            </button>
+            <button onclick="filterEpgNetwork('sports')" id="epgTab-sports" class="epg-net-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-white/10 text-zinc-300 hover:text-white hover:bg-white/20 shrink-0 flex items-center gap-1.5">
+                <i data-lucide="trophy" class="w-3.5 h-3.5"></i> All Sports
+            </button>
+            <button onclick="filterEpgNetwork('all')" id="epgTab-all" class="epg-net-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-white/10 text-zinc-300 hover:text-white hover:bg-white/20 shrink-0">
+                All Channels
+            </button>
+        </div>
     </div>
+
+    <!-- Search & Summary Bar -->
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="relative w-full sm:w-96">
+            <i data-lucide="search" class="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input id="epgSearchInput" type="text" placeholder="Search show, match, or channel name..." oninput="handleEpgSearch(this.value)" class="w-full bg-zinc-900 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-amber-500 transition-all font-semibold">
+        </div>
+        <div class="text-xs font-bold text-zinc-400 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="epgChannelCountText">Loading channels...</span>
+        </div>
+    </div>
+
+    <!-- Loading State -->
     <div id="epgLoadingState" class="py-20 text-center flex flex-col items-center justify-center gap-4">
         <div class="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
         <p class="text-zinc-400 font-mono text-sm">Syncing Electronic Program Guide...</p>
     </div>
+
+    <!-- Empty State -->
     <div id="epgEmptyState" class="hidden py-20 text-center text-zinc-500">
-        No EPG data currently available.
+        No EPG data currently available for this network filter.
     </div>
-    <div id="epgGuideContainer" class="hidden bg-zinc-950 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
-        <div class="p-6 text-center text-amber-500 font-bold">TV Guide successfully loaded.</div>
+
+    <!-- Channels Cards Grid -->
+    <div id="epgGuideContainer" class="hidden">
+        <div id="epgCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <!-- Dynamic EPG Cards -->
+        </div>
     </div>
 </section>
 
@@ -10323,78 +10368,204 @@ async function switchAnimeScheduleDay(day = 'today', specificDate = null) {
     }
 }
 
-// ELECTRONIC PROGRAM GUIDE (EPG) ENGINE
-async function fetchAndParseEpg() {
+// ELECTRONIC PROGRAM GUIDE (EPG) ENGINE — STAR SPORTS & SONY SPORTS
+window.epgActiveNetwork = 'star';
+window.allEpgChannelsList = [];
+
+async function fetchAndParseEpg(force = false) {
     const loadingState = document.getElementById('epgLoadingState');
     const emptyState = document.getElementById('epgEmptyState');
     const guideContainer = document.getElementById('epgGuideContainer');
+    
     if (loadingState) loadingState.classList.remove('hidden');
     if (emptyState) emptyState.classList.add('hidden');
     if (guideContainer) guideContainer.classList.add('hidden');
-    setTimeout(() => {
-        renderDemoEpgData();
+
+    try {
+        if (!window.allEpgChannelsList.length || force) {
+            const res = await fetch('/api/epg/timeline');
+            const data = await res.json();
+            if (data.status === 'success' && Array.isArray(data.channels)) {
+                // Deduplicate channels by trimmed lowercase name
+                const seen = new Set();
+                const deduped = [];
+                data.channels.forEach(ch => {
+                    const cleanName = (ch.name || '').trim().toLowerCase();
+                    if (!seen.has(cleanName)) {
+                        seen.add(cleanName);
+                        deduped.push(ch);
+                    }
+                });
+                window.allEpgChannelsList = deduped;
+            }
+        }
+        renderEpgChannels();
+    } catch (err) {
+        console.error('[EPG] Error loading timeline:', err);
+        if (emptyState) {
+            emptyState.textContent = `EPG Load Error: ${err.message}`;
+            emptyState.classList.remove('hidden');
+        }
+    } finally {
         if (loadingState) loadingState.classList.add('hidden');
-        if (guideContainer) guideContainer.classList.remove('hidden');
-    }, 600);
-}
-function handleEpgProviderChange() {
-    fetchAndParseEpg();
-}
-function renderDemoEpgData() {
-    const demoChannels = [
-        { id: "ch1", name: "HBO HD", logo: "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=150", show: "House of the Dragon", cat: "Movies", time: "8:00 PM - 9:00 PM" },
-        { id: "ch2", name: "Sky Sports Main", logo: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=150", show: "Premier League Live", cat: "Sports", time: "8:30 PM - 10:30 PM" },
-        { id: "ch3", name: "Discovery HD", logo: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=150", show: "Planet Earth III", cat: "Documentary", time: "9:00 PM - 10:00 PM" },
-        { id: "ch4", name: "Anime Central", logo: "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=150", show: "Demon Slayer S4", cat: "Anime", time: "9:30 PM - 10:00 PM" }
-    ];
-    const sidebar = document.getElementById('epgSidebarChannels');
-    const body = document.getElementById('epgTimelineBody');
-    const badge = document.getElementById('epgChannelsCountBadge');
-    const textCount = document.getElementById('epgChannelCountText');
-    if (badge) badge.textContent = `${demoChannels.length} Live Channels Loaded`;
-    if (textCount) textCount.textContent = demoChannels.length;
-    if (sidebar) {
-        sidebar.innerHTML = demoChannels.map(c => `
-            <div class="h-16 px-4 flex items-center gap-3 border-b border-white/5 bg-zinc-950/80">
-                <div class="w-8 h-8 rounded-lg bg-black border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
-                    <img src="${c.logo}" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=' + encodeURIComponent('${c.name}') + '&background=0f172a&color=f59e0b&bold=true';" class="w-full h-full object-cover">
-                </div>
-                <span class="text-xs font-bold text-white truncate">${c.name}</span>
-            </div>
-        `).join('');
     }
-    if (body) {
-        body.innerHTML = demoChannels.map(c => `
-            <div class="h-16 flex items-center px-4 border-b border-white/5 relative">
-                <div onclick="openEpgProgramModal('${c.show}', '${c.name}', '${c.time}', '${c.cat}')" class="bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:bg-amber-500/30 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center gap-2">
-                    <i data-lucide="tv" class="w-3.5 h-3.5 text-amber-400"></i>
-                    <span>${c.show} (${c.time})</span>
-                </div>
-            </div>
-        `).join('');
-    }
+}
+
+function filterEpgNetwork(network) {
+    window.epgActiveNetwork = network;
+    const btnIds = ['star', 'sony', 'sports', 'all'];
+    btnIds.forEach(id => {
+        const btn = document.getElementById(`epgTab-${id}`);
+        if (!btn) return;
+        if (id === network) {
+            btn.className = "epg-net-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-amber-500 text-black shadow-lg shadow-amber-500/20 shrink-0 flex items-center gap-1.5";
+        } else {
+            btn.className = "epg-net-btn px-4 py-2 rounded-xl text-xs font-black transition-all bg-white/10 text-zinc-300 hover:text-white hover:bg-white/20 shrink-0 flex items-center gap-1.5";
+        }
+    });
+    renderEpgChannels();
+}
+
+function handleEpgSearch(query) {
+    window.epgSearchQuery = (query || '').trim().toLowerCase();
+    renderEpgChannels();
+}
+
+function renderEpgChannels() {
+    const guideContainer = document.getElementById('epgGuideContainer');
+    const emptyState = document.getElementById('epgEmptyState');
     const cardsGrid = document.getElementById('epgCardsGrid');
-    if (cardsGrid) {
-        cardsGrid.innerHTML = demoChannels.map(c => `
-            <div class="bg-zinc-950 border border-white/10 p-5 rounded-3xl space-y-3">
-                <div class="flex items-center gap-3">
-                    <img src="${c.logo}" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=' + encodeURIComponent('${c.name}') + '&background=0f172a&color=f59e0b&bold=true';" class="w-10 h-10 rounded-xl object-cover">
-                    <div>
-                        <h4 class="text-sm font-bold text-white">${c.name}</h4>
-                        <span class="text-[10px] text-amber-400 font-bold uppercase">${c.cat}</span>
+    const countBadge = document.getElementById('epgChannelCountText');
+    if (!cardsGrid) return;
+
+    const net = window.epgActiveNetwork || 'star';
+    const q = window.epgSearchQuery || '';
+
+    let filtered = window.allEpgChannelsList || [];
+
+    // 1. Filter by Network
+    if (net === 'star') {
+        filtered = filtered.filter(c => /star sports/i.test(c.name));
+    } else if (net === 'sony') {
+        filtered = filtered.filter(c => /sony/i.test(c.name));
+    } else if (net === 'sports') {
+        filtered = filtered.filter(c => /star|sony|sport|cricket|espn|ten|tnt|dd sports|eurosport/i.test(c.name || c.genre));
+    }
+
+    // 2. Filter by search query
+    if (q) {
+        filtered = filtered.filter(c => 
+            c.name.toLowerCase().includes(q) ||
+            (c.currentProgram?.title || '').toLowerCase().includes(q) ||
+            (c.currentProgram?.category || '').toLowerCase().includes(q) ||
+            (c.genre || '').toLowerCase().includes(q)
+        );
+    }
+
+    if (countBadge) {
+        countBadge.textContent = `${filtered.length} Channels • ${net === 'star' ? 'Star Sports Network' : (net === 'sony' ? 'Sony Sports Network' : (net === 'sports' ? 'Sports Channels' : 'All Channels'))}`;
+    }
+
+    if (filtered.length === 0) {
+        if (guideContainer) guideContainer.classList.add('hidden');
+        if (emptyState) emptyState.classList.remove('hidden');
+        return;
+    }
+
+    if (emptyState) emptyState.classList.add('hidden');
+    if (guideContainer) guideContainer.classList.remove('hidden');
+
+    const now = Date.now();
+
+    cardsGrid.innerHTML = filtered.map(ch => {
+        const cur = ch.currentProgram || {};
+        const nxt = (ch.programs && ch.programs[1]) ? ch.programs[1] : null;
+        const isStar = /star sports/i.test(ch.name);
+        const isSony = /sony/i.test(ch.name);
+        
+        let netBadge = '';
+        if (isStar) {
+            netBadge = `<span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/30">⭐ STAR SPORTS</span>`;
+        } else if (isSony) {
+            netBadge = `<span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-400/30">📺 SONY SPORTS</span>`;
+        } else {
+            netBadge = `<span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-500/20 text-red-300 border border-red-400/30">🏆 SPORTS</span>`;
+        }
+
+        let progressPct = 45;
+        if (cur.startTime && cur.endTime && cur.endTime > cur.startTime) {
+            progressPct = Math.min(100, Math.max(5, Math.round(((now - cur.startTime) / (cur.endTime - cur.startTime)) * 100)));
+        }
+
+        const curTimeStr = cur.start && cur.end ? `${cur.start} - ${cur.end} IST` : '8:00 PM - 10:00 PM IST';
+        const curTitle = cur.title || 'Live Sports Broadcast';
+        const curCat = cur.category || 'Sports';
+        const nxtTitle = nxt ? nxt.title : 'Sports Highlights & Replay';
+        const nxtTime = nxt ? (nxt.start || 'Next') : 'Later';
+
+        const logoUrl = ch.logo || (typeof getSportsLogo === 'function' ? getSportsLogo({ name: ch.name }) : '');
+        const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(ch.name)}&background=0f172a&color=f59e0b&bold=true`;
+
+        return `
+            <div class="bg-gradient-to-b from-zinc-900/90 via-zinc-950 to-black border border-white/10 hover:border-amber-500/50 rounded-3xl p-5 space-y-4 shadow-xl transition-all hover:scale-[1.01] hover:shadow-2xl hover:shadow-amber-500/10 flex flex-col justify-between">
+                <!-- Channel Top Bar -->
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-11 h-11 rounded-2xl bg-black border border-white/10 overflow-hidden shrink-0 flex items-center justify-center p-1 shadow-inner">
+                            <img src="${logoUrl}" onerror="this.onerror=null; this.src='${fallbackAvatar}';" class="w-full h-full object-contain" alt="${ch.name}">
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="text-sm font-black text-white truncate leading-tight">${ch.name.replace(/\[.*?\]/g, '').trim()}</h4>
+                            <div class="mt-1 flex items-center gap-1.5 flex-wrap">
+                                ${netBadge}
+                                <span class="text-[10px] text-zinc-400 font-mono">HD</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="bg-white/5 p-3 rounded-2xl border border-white/5">
-                    <p class="text-xs font-bold text-white">${c.show}</p>
-                    <p class="text-[10px] text-zinc-400 mt-1 font-mono">${c.time}</p>
+
+                <!-- On Air Program -->
+                <div class="bg-black/40 border border-white/5 p-3.5 rounded-2xl space-y-2">
+                    <div class="flex items-center justify-between text-[10px] font-bold">
+                        <span class="text-red-400 flex items-center gap-1 uppercase tracking-wider">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span> ON AIR NOW
+                        </span>
+                        <span class="text-zinc-400 font-mono">${curTimeStr}</span>
+                    </div>
+                    <p class="text-xs font-black text-white leading-snug truncate" title="${curTitle}">${curTitle}</p>
+                    <div class="flex items-center justify-between text-[10px] text-zinc-400">
+                        <span>${curCat}</span>
+                        <span class="font-mono text-amber-400">${progressPct}%</span>
+                    </div>
+                    <!-- Live Progress Bar -->
+                    <div class="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-amber-500 to-red-500 rounded-full transition-all" style="width: ${progressPct}%;"></div>
+                    </div>
                 </div>
-                <button onclick="openEpgProgramModal('${c.show}', '${c.name}', '${c.time}', '${c.cat}')" class="w-full py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-xs font-bold rounded-xl transition-all">
-                    Program Details
-                </button>
+
+                <!-- Up Next Program -->
+                <div class="px-1 text-[11px] text-zinc-400 flex items-center justify-between gap-2 border-t border-white/5 pt-2">
+                    <div class="truncate flex items-center gap-1.5">
+                        <span class="text-[9px] font-black uppercase text-zinc-500 shrink-0">UP NEXT:</span>
+                        <span class="truncate text-zinc-300 font-medium" title="${nxtTitle}">${nxtTitle}</span>
+                    </div>
+                    <span class="text-[10px] font-mono text-zinc-500 shrink-0">${nxtTime}</span>
+                </div>
+
+                <!-- Action Button -->
+                <div class="pt-1 flex items-center gap-2">
+                    <a href="${ch.playUrl}" class="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 active:scale-95 text-black font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
+                        <i data-lucide="play" class="w-4 h-4 fill-black"></i> Watch Channel
+                    </a>
+                    <button onclick="openEpgProgramModal('${curTitle.replace(/'/g, "\\'")}', '${ch.name.replace(/'/g, "\\'")}', '${curTimeStr}', '${curCat}')" class="p-2.5 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white rounded-xl border border-white/10 transition-all" title="Show Details">
+                        <i data-lucide="info" class="w-4 h-4"></i>
+                    </button>
+                </div>
             </div>
-        `).join('');
-    }
-    triggerLucide();
+        `;
+    }).join('');
+
+    if (typeof triggerLucide === 'function') triggerLucide();
 }
 function toggleEpgView(view) {
     const timeline = document.getElementById('epgTimelineViewContainer');
