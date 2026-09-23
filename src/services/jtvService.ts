@@ -263,8 +263,10 @@ export class JtvService {
                     const token = rawCookie.startsWith('__hdnea__=') ? rawCookie : (rawCookie ? `__hdnea__=${rawCookie}` : '');
                     const streamUrl = item.stream_url || item.channel_url || '';
                     const fullStreamUrl = streamUrl ? (streamUrl + (streamUrl.includes('?') ? '&' : '?') + token) : '';
-                    const keyId = item.key_id || item.keyId || '';
-                    const key = item.key || '';
+                    const rawKeyId = String(item.key_id || item.keyId || '').trim();
+                    const rawKey = String(item.key || '').trim();
+                    const keyId = (rawKeyId !== 'null' && rawKeyId !== 'undefined') ? rawKeyId : '';
+                    const key = (rawKey !== 'null' && rawKey !== 'undefined') ? rawKey : '';
                     const manifestUrl = id ? `/api/mdtv/manifest/${id}.mpd` : '';
 
                     return {

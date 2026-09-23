@@ -2230,24 +2230,28 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                                         // DASH ClearKey stream (JioTV, Hotstar DASH, etc.)
                                         // Prefer direct CDN URL (full_stream_url) so browser fetches MPD directly —
                                         // avoids GCP datacenter IP blocks (HTTP 451) on server-side manifest proxy
-                                        src = ch.full_stream_url || ch.manifest_url || `/api/jtv/manifest/${ch.id}.mpd` || ch.stream_url;
-                                        resolvedSrc = src;
-                                        if (ch.token) window._activeAkamaiToken = ch.token;
-                                        if (ch.key_id && ch.key) {
-                                            const cId = (ch.key_id + '').trim().replace(/[^0-9a-fA-F]/g, '');
-                                            const cKey = (ch.key + '').trim().replace(/[^0-9a-fA-F]/g, '');
-                                            if (cId.length === 32 && cKey.length === 32) {
-                                                drmKeyId = cId;
-                                                drmKey = cKey;
-                                                window._activeClearKeyId = drmKeyId;
-                                                window._activeClearKey = drmKey;
-                                            } else {
-                                                drmKeyId = '';
-                                                drmKey = '';
-                                                window._activeClearKeyId = '';
-                                                window._activeClearKey = '';
-                                            }
+                                        const cId = (ch.key_id + '').trim().replace(/[^0-9a-fA-F]/g, '');
+                                        const cKey = (ch.key + '').trim().replace(/[^0-9a-fA-F]/g, '');
+                                        const hasValidClearKey = cId.length === 32 && cKey.length === 32;
+
+                                        if (hasValidClearKey) {
+                                            src = ch.full_stream_url || ch.manifest_url || `/api/jtv/manifest/${ch.id}.mpd` || ch.stream_url;
+                                            resolvedSrc = src;
+                                            if (ch.token) window._activeAkamaiToken = ch.token;
+                                            drmKeyId = cId;
+                                            drmKey = cKey;
+                                            window._activeClearKeyId = drmKeyId;
+                                            window._activeClearKey = drmKey;
                                         } else {
+                                            // Channel has NO ClearKey keys (Widevine WDVLive or clear stream)
+                                            // If src was already auto-resolved to an HLS stream (e.g. from /api/channels/resolve), preserve it!
+                                            if (src && src.includes('.m3u8')) {
+                                                resolvedSrc = src;
+                                            } else {
+                                                src = ch.full_stream_url || ch.stream_url;
+                                                resolvedSrc = src;
+                                            }
+                                            if (ch.token) window._activeAkamaiToken = ch.token;
                                             drmKeyId = '';
                                             drmKey = '';
                                             window._activeClearKeyId = '';
@@ -2933,10 +2937,13 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                         dashPlayer.on(dashjs.MediaPlayer.events.ERROR, (e) => {
                             console.warn("[DASH Engine Error]", e);
                             hideLoadingScreen();
-                            if (Hls.isSupported() && !streamUrl.includes('.mpd') && !isExplicitDash) {
+                            const errDetail = e.error?.message || e.message || (typeof e.error === 'string' ? e.error : '') || '';
+                            if (errDetail.toLowerCase().includes('drm') || errDetail.toLowerCase().includes('license') || streamUrl.includes('WDVLive')) {
+                                showPlayerError("🔒 Widevine Encrypted Channel: This stream requires Widevine DRM credentials (no ClearKey key available). Please choose another channel or sports network.");
+                            } else if (Hls.isSupported() && !streamUrl.includes('.mpd') && !isExplicitDash) {
                                 loadHls(streamUrl);
                             } else {
-                                showPlayerError("⚠️ Stream Notice: " + (e.error?.message || e.message || "Failed to decode live stream. Please try reconnecting or select another stream."));
+                                showPlayerError("⚠️ Stream Notice: " + (errDetail || "Failed to decode live stream. Please try reconnecting or select another stream."));
                             }
                         });
                         window.dashPlayer = dashPlayer;
