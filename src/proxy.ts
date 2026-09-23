@@ -907,6 +907,17 @@ export async function handleLiveStream(req: Request, res: Response) { console.lo
         req_id = req_id.replace(/^ffmpeg\s+/i, '').replace(/^ffrt\s+/i, '').trim();
     }
 
+    if (req_id && (req_id.startsWith('/api/proxy/fancode') || req_id.startsWith('/api/proxy/hls') || req_id.startsWith('/proxy'))) {
+        const innerUrlMatch = req_id.match(/url=([^&]+)/);
+        if (innerUrlMatch) {
+            const target = decodeURIComponent(innerUrlMatch[1]);
+            return res.redirect(302, `/api/proxy/fancode?url=${encodeURIComponent(target)}`);
+        }
+    }
+    if (req_id && (req_id.includes('fancode.com') || req_id.includes('flive') || req_id.includes('dai-fancode'))) {
+        return res.redirect(302, `/api/proxy/fancode?url=${encodeURIComponent(req_id)}`);
+    }
+
     if (req_id && (req_id.startsWith('jtv-') || req_id.startsWith('mdtv-') || req_id.startsWith('jtv_') || req_id.startsWith('mdtv_'))) {
         try {
             const ch = await JtvService.resolveChannel(req_id);

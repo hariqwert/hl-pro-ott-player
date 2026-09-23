@@ -1740,7 +1740,17 @@ function e($str)
                         hls.destroy();
                         hls = new Hls({
                             enableWorker: true,
-                            xhrSetup: (xhr) => { xhr.withCredentials = false; }
+                            xhrSetup: (xhr, url) => {
+                                try {
+                                    if (!url || url.startsWith('/') || !url.includes('://') || (window.location && url.includes(window.location.host))) {
+                                        xhr.withCredentials = true;
+                                    } else {
+                                        xhr.withCredentials = false;
+                                    }
+                                } catch (e) {
+                                    xhr.withCredentials = false;
+                                }
+                            }
                         });
                         hls.loadSource(new URL(seekUrl, window.location.origin).href);
                         hls.attachMedia(video);

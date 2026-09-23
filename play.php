@@ -1969,8 +1969,16 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                         fragLoadingMaxRetry: 10,
                         fragLoadingRetryDelay: 500,
                         fragLoadingMaxRetryTimeout: 64000,
-                        xhrSetup: (xhr) => {
-                            xhr.withCredentials = false;
+                        xhrSetup: (xhr, url) => {
+                            try {
+                                if (!url || url.startsWith('/') || !url.includes('://') || (window.location && url.includes(window.location.host))) {
+                                    xhr.withCredentials = true;
+                                } else {
+                                    xhr.withCredentials = false;
+                                }
+                            } catch (e) {
+                                xhr.withCredentials = false;
+                            }
                         }
                     });
                     hls.loadSource(streamUrl);

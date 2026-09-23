@@ -6841,7 +6841,7 @@ function getUpstreamProxyHeaders(targetUrlStr: string): Record<string, string> {
         headers['Origin'] = headers['Origin'] || 'https://www.sonyliv.com';
     }
 
-    const isFanCode = u.hostname.includes('fancode.com') || u.hostname.includes('fancode.pages.dev');
+    const isFanCode = u.hostname.includes('fancode.com') || u.hostname.includes('fancode.pages.dev') || u.hostname.includes('flive') || u.hostname.includes('dai-fancode');
     if (isFanCode) {
         headers['User-Agent'] = headers['User-Agent'] || 'ReactNativeVideo/9.11.1 (Linux;Android 13) AndroidXMedia3/1.6.1';
         headers['Referer'] = headers['Referer'] || 'https://fancode.com/';
@@ -6901,7 +6901,12 @@ app.all(['/api/proxy/fancode', '/api/proxy/hls', '/proxy'], async (req: Request,
     }
 
     try {
-        const proto = req.protocol || 'http';
+        const forwardedProto = (req.headers['x-forwarded-proto'] as string || '').split(',')[0].trim();
+        const isHttps = forwardedProto === 'https' || 
+                        req.secure || 
+                        req.headers['x-forwarded-ssl'] === 'on' || 
+                        (req.get('host') || '').includes('run.app');
+        const proto = isHttps ? 'https' : (req.protocol || 'http');
         const host = req.get('host') || 'localhost:3000';
         const proxyBase = `${proto}://${host}${req.path}`;
         const upstreamHeaders = getUpstreamProxyHeaders(target);

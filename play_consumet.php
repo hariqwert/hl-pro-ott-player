@@ -2697,8 +2697,16 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                         fragLoadingTimeOut: 30000,
                         fragLoadingMaxRetry: 8,
                         fragLoadingRetryDelay: 1000,
-                        xhrSetup: (xhr) => {
-                            xhr.withCredentials = false;
+                        xhrSetup: (xhr, url) => {
+                            try {
+                                if (!url || url.startsWith('/') || !url.includes('://') || (window.location && url.includes(window.location.host))) {
+                                    xhr.withCredentials = true;
+                                } else {
+                                    xhr.withCredentials = false;
+                                }
+                            } catch (e) {
+                                xhr.withCredentials = false;
+                            }
                         }
                     });
                     hls.loadSource(streamUrl);
@@ -2777,6 +2785,12 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                                     }
                                     return;
                                 }
+                                if (streamUrl && !streamUrl.includes('/api/proxy/') && (streamUrl.includes('fancode') || streamUrl.includes('flive') || streamUrl.includes('sonyliv'))) {
+                                    console.warn('[HLS Fallback] Parsing error on direct stream. Retrying through FanCode proxy...');
+                                    const proxied = `/api/proxy/fancode?url=${encodeURIComponent(streamUrl)}`;
+                                    loadHls(proxied);
+                                    return;
+                                }
                                 loading.style.display = 'none';
                                 showPlayerError("⚠️ Stream Feed Unreachable: The upstream provider for this channel is currently offline or returning an invalid stream. Please try another live channel (e.g. Sony, TimStreams, Sports).");
                                 return;
@@ -2784,7 +2798,13 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                             switch (data.type) {
                                 case Hls.ErrorTypes.NETWORK_ERROR:
                                     console.warn('[HLS Network Error] Retrying stream load...');
-                                    if (streamUrl && !streamUrl.includes('live.php') && !streamUrl.includes('/api/stream-proxy')) {
+                                    if (streamUrl && !streamUrl.includes('live.php') && !streamUrl.includes('/api/stream-proxy') && !streamUrl.includes('/api/proxy/')) {
+                                        if (streamUrl.includes('fancode') || streamUrl.includes('flive') || streamUrl.includes('sonyliv')) {
+                                            console.warn('[HLS Auto-Proxy] Direct sports stream failed. Auto-proxying via /api/proxy/fancode...');
+                                            const proxied = `/api/proxy/fancode?url=${encodeURIComponent(streamUrl)}`;
+                                            loadHls(proxied);
+                                            return;
+                                        }
                                         console.warn('[HLS Auto-Proxy] Direct stream failed with network error. Auto-proxying via live.php...');
                                         const proxied = `live.php?id=${encodeURIComponent(src)}&m3u=1`;
                                         loadHls(proxied);

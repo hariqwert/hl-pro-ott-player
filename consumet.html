@@ -6125,7 +6125,7 @@ async function loadLiveSportsSchedule(force = false) {
                     if (ev.clearkey) {
                         pUrl = `/play_consumet.php?event_id=${encodeURIComponent(ev.id)}&url=${encodeURIComponent(ev.stream_url)}&clearkey=${encodeURIComponent(ev.clearkey)}&name=${encodeURIComponent(ev.name)}&source=consumet.html`;
                     } else {
-                        const proxyUrl = `/api/proxy/fancode?url=${encodeURIComponent(ev.stream_url)}`;
+                        const proxyUrl = ev.stream_url.includes('/api/proxy/') ? ev.stream_url : `/api/proxy/fancode?url=${encodeURIComponent(ev.stream_url)}`;
                         pUrl = `/play_consumet.php?url=${encodeURIComponent(proxyUrl)}&name=${encodeURIComponent(ev.name)}&source=consumet.html&type=hls`;
                     }
                     const isCricket = (ev.group || '').toLowerCase().includes('cricket') || (ev.tournament || '').toLowerCase().includes('cricket');
