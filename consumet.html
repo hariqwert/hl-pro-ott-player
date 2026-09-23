@@ -5845,13 +5845,22 @@ async function loadLiveSportsSchedule(force = false) {
     if (icon) icon.classList.add('animate-spin');
 
     try {
-        const [streamicRes, timEventsRes, jtvEventsRes, addedChannelsRes, adminSportsRes] = await Promise.allSettled([
+        const [streamicRes, timEventsRes, jtvEventsRes, addedChannelsRes, adminSportsRes, highlightsRes, zeeRes] = await Promise.allSettled([
             fetch(`/api/streamic/schedule${force ? '?force=1' : ''}`).then(r => r.json()),
             fetch(`/api/sports/live-events${force ? '?refresh=1' : ''}`).then(r => r.json()),
             fetch(`/api/live/events`).then(r => r.json()),
             fetch(`/api/sports/channels`).then(r => r.json()),
-            fetch(`/api/sports`).then(r => r.json())
+            fetch(`/api/sports`).then(r => r.json()),
+            fetch(`/api/sports/highlights${force ? '?refresh=1' : ''}`).then(r => r.json()),
+            fetch(`/api/zee/channels${force ? '?refresh=1' : ''}`).then(r => r.json())
         ]);
+
+        if (highlightsRes.status === 'fulfilled' && highlightsRes.value?.status === 'success' && Array.isArray(highlightsRes.value.highlights)) {
+            window.sportsHighlights = highlightsRes.value.highlights;
+        }
+        if (zeeRes.status === 'fulfilled' && zeeRes.value?.status === 'success' && Array.isArray(zeeRes.value.channels)) {
+            window.zeeChannels = zeeRes.value.channels;
+        }
 
         let allEvents = [];
         if (streamicRes.status === 'fulfilled' && streamicRes.value?.status === 'success' && Array.isArray(streamicRes.value.events)) {
@@ -7064,6 +7073,87 @@ function renderLiveNowGrid() {
         const f1Matches = events.filter(e => (e.category || '').toLowerCase().includes('f1') || (e.sportName || '').toLowerCase().includes('f1') || (e.league || '').toLowerCase().includes('formula') || (e.category || '').toLowerCase().includes('motorsport'));
         const combatMatches = events.filter(e => (e.category || '').toLowerCase().includes('combat') || (e.sportName || '').toLowerCase().includes('combat') || (e.league || '').toLowerCase().includes('ufc') || (e.league || '').toLowerCase().includes('wwe'));
         const basketballMatches = events.filter(e => (e.category || '').toLowerCase().includes('basketball') || (e.sportName || '').toLowerCase().includes('nba'));
+        const fancodeMatches = events.filter(e => (e.source || '').toLowerCase().includes('fancode') || (e.rawTitle || e.title || '').toLowerCase().includes('fancode'));
+
+        // Highlights shelf items from /api/sports/highlights
+        const highlightsCards = (window.sportsHighlights || []).map(h => ({
+            id: h.id,
+            title: h.title,
+            rawTitle: h.title,
+            sportName: h.competition || 'Highlights',
+            sportEmoji: h.sport === 'football' ? '⚽' : (h.sport === 'cricket' ? '🏏' : '🏆'),
+            category: h.sport,
+            league: h.competition,
+            countryCode: 'GL',
+            startTime: Math.floor((h.updatedAt || Date.now()) / 1000),
+            endTime: Math.floor((h.updatedAt || Date.now()) / 1000) + 7200,
+            durationMinutes: 120,
+            timeIST: 'HIGHLIGHTS',
+            dateIST: 'Today',
+            fullIST: 'Official Video Highlights',
+            status: 'REPLAY',
+            isLive: false,
+            isStartingSoon: false,
+            isEnded: false,
+            canWatch: true,
+            countdown: 'HIGHLIGHTS',
+            hasEnglish: true,
+            isFamous: true,
+            source: h.source || 'ScoreBat',
+            thumbnail: h.thumbnail || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=80',
+            userHasChannel: true,
+            primaryPlayUrl: h.embedUrl ? `/play_consumet.php?url=${encodeURIComponent(h.embedUrl)}&name=${encodeURIComponent(h.title)}&source=consumet.html&type=embed` : '#',
+            primaryChannelName: h.source || 'Video Highlights',
+            channels: [{
+                channelName: h.title,
+                language: 'English',
+                isEnglish: true,
+                userHasChannel: true,
+                userChannelUrl: h.embedUrl || '',
+                playUrl: h.embedUrl ? `/play_consumet.php?url=${encodeURIComponent(h.embedUrl)}&name=${encodeURIComponent(h.title)}&source=consumet.html&type=embed` : '#'
+            }]
+        }));
+
+        // Zee Channels shelf items from /api/zee/channels
+        const zeeCards = (window.zeeChannels || []).map(z => ({
+            id: z.id,
+            title: z.name,
+            rawTitle: z.name,
+            sportName: z.genre || 'Entertainment',
+            sportEmoji: '📺',
+            category: z.genre,
+            league: 'Zee Network',
+            countryCode: 'IN',
+            startTime: Math.floor(Date.now() / 1000),
+            endTime: Math.floor(Date.now() / 1000) + 86400,
+            durationMinutes: 1440,
+            timeIST: 'LIVE 24/7',
+            dateIST: 'Today',
+            fullIST: '24/7 Cloudfront Broadcast',
+            status: 'LIVE',
+            isLive: true,
+            isStartingSoon: false,
+            isEnded: false,
+            canWatch: true,
+            countdown: 'LIVE NOW',
+            hasEnglish: false,
+            isFamous: true,
+            source: 'ZEE_CLOUDFRONT',
+            thumbnail: z.logo || 'https://images.unsplash.com/photo-1593784991095-a205069470b6?w=800&auto=format&fit=crop&q=80',
+            userHasChannel: true,
+            primaryPlayUrl: z.streamUrl,
+            primaryChannelName: z.name,
+            isAddedChannel: true,
+            isMdtv: true,
+            channels: [{
+                channelName: z.name,
+                language: 'Hindi',
+                isEnglish: false,
+                userHasChannel: true,
+                userChannelUrl: z.streamUrl,
+                playUrl: z.streamUrl
+            }]
+        }));
 
         let shelvesHtml = '';
 
@@ -7086,6 +7176,15 @@ function renderLiveNowGrid() {
 
         if (liveMatches.length > 0) {
             shelvesHtml += createShelf('Live Now (Matches & Events)', liveMatches, true);
+        }
+        if (highlightsCards.length > 0) {
+            shelvesHtml += createShelf('🏆 Major Sports Highlights & Replays', highlightsCards, false);
+        }
+        if (zeeCards.length > 0) {
+            shelvesHtml += createShelf('📺 Zee Network Live (Cloudfront ClearKey)', zeeCards, true);
+        }
+        if (fancodeMatches.length > 0) {
+            shelvesHtml += createShelf('🏏 FanCode Live Matches', fancodeMatches, true);
         }
         if (mdtvChannelsList.length > 0) {
             shelvesHtml += createShelf('Special Channels', mdtvChannelsList, true);

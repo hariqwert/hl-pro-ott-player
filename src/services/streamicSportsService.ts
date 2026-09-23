@@ -533,18 +533,13 @@ export function evaluateSonyShow(show: { showname?: string; title?: string; desc
         return { isLiveSport: false, reason: `Archived replay from ${pastYearMatch[0]}` };
     }
 
-    // On-air shows on 24/7 Sony Sports Network are live broadcasts
-    if (isCurrentOnAir) {
-        return { isLiveSport: true };
-    }
-
     // 2. Check for past match result description (e.g. beat, defeated, collapsed, scored, won by)
     const pastResultRegex = /\b(beat|defeated|collapsed|won by|dismissed|lost by|scored\s+\d+)\b/i;
     if (pastResultRegex.test(desc) && !isExplicitLive) {
         return { isLiveSport: false, reason: 'Past match result in description' };
     }
 
-    // 3. Check for non-live keywords in title or desc
+    // 3. Check for non-live keywords in title or desc (highlights, replays, classic, review, etc.)
     for (const kw of NON_LIVE_KEYWORDS) {
         const regex = new RegExp('\\b' + kw + '\\b', 'i');
         if (regex.test(name) || regex.test(desc)) {
@@ -560,6 +555,15 @@ export function evaluateSonyShow(show: { showname?: string; title?: string; desc
     // 5. willRepeat flag
     if (show.willRepeat === true && !isExplicitLive) {
         return { isLiveSport: false, reason: 'willRepeat is true' };
+    }
+
+    // On-air shows on 24/7 Sony Sports Network are live only if they have genuine match fixture or explicit LIVE
+    if (isCurrentOnAir) {
+        const hasMatchIndicator = /\b(vs|v\/s|v|\-)\b/i.test(name) || isExplicitLive;
+        if (!hasMatchIndicator) {
+            return { isLiveSport: false, reason: 'On-air linear filler without match fixture' };
+        }
+        return { isLiveSport: true };
     }
 
     return { isLiveSport: true };
