@@ -1,218 +1,218 @@
 {
     "portals": [
         {
-            "username": "0053e626fddf",
-            "password": "3030bf1583",
-            "isDefault": false,
             "type": "xtream",
-            "id": "xtream_hdiptv_club",
+            "isDefault": false,
+            "url": "http://hdiptv.club:80",
+            "username": "0053e626fddf",
             "name": "HDIPTV Club Portal",
-            "url": "http://hdiptv.club:80"
+            "id": "xtream_hdiptv_club",
+            "password": "3030bf1583"
         },
         {
+            "id": "xtream_line_krishkaz_com",
+            "type": "xtream",
+            "url": "http://line.krishkaz.com",
+            "password": "16A525",
             "name": "Krishkaz Xtream Portal",
             "isDefault": false,
-            "id": "xtream_line_krishkaz_com",
-            "url": "http://line.krishkaz.com",
-            "username": "AdemSarikaya",
-            "password": "16A525",
-            "type": "xtream"
+            "username": "AdemSarikaya"
         },
         {
-            "username": "7b81bb3ace8c",
-            "password": "84111dead2",
-            "url": "http://strong8k.art:80",
-            "name": "Strong8k Xtream Portal",
-            "type": "xtream",
             "isDefault": false,
-            "id": "xtream_strong8k_art"
+            "id": "xtream_strong8k_art",
+            "type": "xtream",
+            "url": "http://strong8k.art:80",
+            "password": "84111dead2",
+            "name": "Strong8k Xtream Portal",
+            "username": "7b81bb3ace8c"
         },
         {
+            "url": "http://xupuybzt.lazdns.com",
+            "id": "xtream_xupuybzt_lazdns_com",
             "name": "Lazdns Xtream Portal",
             "isDefault": false,
+            "type": "xtream",
             "password": "E7JWd8N9",
-            "username": "fouaadkhadi",
-            "id": "xtream_xupuybzt_lazdns_com",
-            "url": "http://xupuybzt.lazdns.com",
-            "type": "xtream"
+            "username": "fouaadkhadi"
         },
         {
-            "mac": "00:1A:79:00:00:01",
-            "D1": "D20A30551398D28B10BF3676E4D2442D2442F8A398E42BAB7F203313594891B6",
-            "API": "263",
-            "D2": "D20A30551398D28B10BF3676E4D2442D2442F8A398E42BAB7F203313594891B6",
-            "model": "MAG250",
             "isDefault": false,
-            "name": "Geoent Stalker Portal",
-            "hw_version_2": "ff82ef9cd910ba406f2fd062045b7f52",
-            "url": "http://123.geoent.cc/stalker_portal",
+            "model": "MAG250",
             "type": "stalker",
+            "D2": "D20A30551398D28B10BF3676E4D2442D2442F8A398E42BAB7F203313594891B6",
+            "name": "Geoent Stalker Portal",
+            "mac": "00:1A:79:00:00:01",
             "hw_version": "1.7-BD-30",
-            "id": "stalker_123_geoent_cc"
+            "D1": "D20A30551398D28B10BF3676E4D2442D2442F8A398E42BAB7F203313594891B6",
+            "id": "stalker_123_geoent_cc",
+            "API": "263",
+            "url": "http://123.geoent.cc/stalker_portal",
+            "hw_version_2": "ff82ef9cd910ba406f2fd062045b7f52"
         },
         {
-            "mac": "A0:BB:3E:BC:25:43",
+            "model": "MAG250",
             "url": "http://weaseltv.live:80",
             "name": "WeaselTV Portal",
-            "type": "stalker",
             "isDefault": true,
-            "id": "stalker_weaseltv_live",
-            "model": "MAG250"
-        },
-        {
-            "name": "mrp",
-            "id": "play.tatasky.xyz_867",
-            "model": "MAG250",
-            "url": "http://play.tatasky.xyz/stalker_portal",
-            "mac": "00:1A:79:54:4F:7F",
-            "isDefault": false,
-            "type": "stalker"
-        },
-        {
-            "url": "http://play.b4u.live/stalker_portal",
-            "isDefault": false,
-            "SG": "",
-            "hw_version_2": "69284ab85e1741116887f0b64e179d47",
+            "mac": "A0:BB:3E:BC:25:43",
             "type": "stalker",
-            "mac": "00:1A:79:97:97:1E",
-            "API": "263",
-            "name": "B4U Live Portal",
-            "Share": "OFF",
-            "model": "MAG250",
-            "D1": "ECE6CBEADF122B5FBECC1BFC70EF11716D6CD34E65784FAAD18D70FAB5B7864F",
-            "sn": "00EBCEF9291CC",
-            "id": "stalker_play_b4u_live",
-            "hw_version": "1.7-BD-00",
-            "D2": "ECE6CBEADF122B5FBECC1BFC70EF11716D6CD34E65784FAAD18D70FAB5B7864F",
-            "Proxy": "AUTO"
+            "id": "stalker_weaseltv_live"
         },
         {
-            "username": "app",
-            "password": "developer",
-            "type": "xtream",
+            "model": "MAG250",
+            "name": "mrp",
+            "url": "http://play.tatasky.xyz/stalker_portal",
             "isDefault": false,
+            "type": "stalker",
+            "mac": "00:1A:79:54:4F:7F",
+            "id": "play.tatasky.xyz_867"
+        },
+        {
+            "hw_version_2": "69284ab85e1741116887f0b64e179d47",
+            "SG": "",
+            "D1": "ECE6CBEADF122B5FBECC1BFC70EF11716D6CD34E65784FAAD18D70FAB5B7864F",
+            "id": "stalker_play_b4u_live",
+            "url": "http://play.b4u.live/stalker_portal",
+            "type": "stalker",
+            "isDefault": false,
+            "model": "MAG250",
+            "Share": "OFF",
+            "name": "B4U Live Portal",
+            "Proxy": "AUTO",
+            "D2": "ECE6CBEADF122B5FBECC1BFC70EF11716D6CD34E65784FAAD18D70FAB5B7864F",
+            "hw_version": "1.7-BD-00",
+            "API": "263",
+            "mac": "00:1A:79:97:97:1E",
+            "sn": "00EBCEF9291CC"
+        },
+        {
+            "type": "xtream",
+            "url": "https://solapuristreams.iptv18.space",
+            "isDefault": false,
+            "username": "app",
             "name": "Solapuri Streams",
-            "id": "xtream_solapuristreams",
-            "url": "https://solapuristreams.iptv18.space"
+            "password": "developer",
+            "id": "xtream_solapuristreams"
         }
     ],
-    "maintenanceMode": false,
-    "developerMode": false,
-    "maintenanceVideoEnabled": false,
+    "liveEvents": [],
+    "maintenanceText": "Thankyou for your support",
     "maintenanceVideoUrl": "https://www.youtube.com/watch?v=5KihByp4IDs&list=RD5KihByp4IDs&start_radio=1",
-    "allowedDeveloperIps": [],
-    "maintenanceMusicMode": "query",
-    "consumetMaintenance": false,
-    "backgrounds": {
-        "music": {
-            "url": "",
-            "type": "auto"
-        },
-        "musicUseSongVideo": true,
-        "consumet": {
-            "type": "auto",
-            "url": ""
-        },
-        "hero": {
-            "url": "",
-            "type": "auto"
-        },
-        "index": {
-            "type": "auto",
-            "url": ""
-        }
-    },
     "sports": [
         {
             "bgUrl": "https://images.fancode.com/skillup-uploads/cms-media/AFG_IND_2026_WEBTVBG_212.jpg?hash=eyJrZXkiOiJza2lsbHVwLXVwbG9hZHMvY21zLW1lZGlhL0FGR19JTkRfMjAyNl9XRUJUVkJHXzIxMi5qcGciLCJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiY292ZXIiLCJ3aWR0aCI6Mzg0MCwiaGVpZ2h0IjoyMTYwfSwid2VicCI6eyJxdWFsaXR5Ijo2MCwibG9zc2xlc3MiOmZhbHNlfX0sIm91dHB1dEZvcm1hdCI6IndlYnAifQ==",
-            "addedAt": "2026-09-13T11:52:38.414Z",
+            "title": "INDIA VS AFG",
+            "url": "https://stream.kliv.in/nex/air11_5788.m3u8",
             "icon": "https://images.fancode.com/skillup-uploads/cms-media/AFG_IND_2026_WEBTVBG_212.jpg?hash=eyJrZXkiOiJza2lsbHVwLXVwbG9hZHMvY21zLW1lZGlhL0FGR19JTkRfMjAyNl9XRUJUVkJHXzIxMi5qcGciLCJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiY292ZXIiLCJ3aWR0aCI6Mzg0MCwiaGVpZ2h0IjoyMTYwfSwid2VicCI6eyJxdWFsaXR5Ijo2MCwibG9zc2xlc3MiOmZhbHNlfX0sIm91dHB1dEZvcm1hdCI6IndlYnAifQ==",
-            "url": "http://localhost:3000/player/mdtv?id=1106",
-            "title": "STAR SPORTS 1 HD",
+            "addedAt": "2026-09-13T11:52:38.414Z",
             "id": "sports_1789300358414",
             "containerId": "default_showcase"
         },
         {
+            "title": "INDIA VS AFG",
             "containerId": "default_showcase",
             "bgUrl": "https://images.fancode.com/skillup-uploads/cms-media/AFG_IND_2026_WEBTVBG_212.jpg?hash=eyJrZXkiOiJza2lsbHVwLXVwbG9hZHMvY21zLW1lZGlhL0FGR19JTkRfMjAyNl9XRUJUVkJHXzIxMi5qcGciLCJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiY292ZXIiLCJ3aWR0aCI6Mzg0MCwiaGVpZ2h0IjoyMTYwfSwid2VicCI6eyJxdWFsaXR5Ijo2MCwibG9zc2xlc3MiOmZhbHNlfX0sIm91dHB1dEZvcm1hdCI6IndlYnAifQ==",
-            "addedAt": "2026-09-13T11:53:09.721Z",
-            "url": "https://ellamoonu.ai.studio/live.php?token=STALKER_PRO&id=tim_willow-usa&m3u=1&type=hls",
             "icon": "https://images.fancode.com/skillup-uploads/cms-media/AFG_IND_2026_WEBTVBG_212.jpg?hash=eyJrZXkiOiJza2lsbHVwLXVwbG9hZHMvY21zLW1lZGlhL0FGR19JTkRfMjAyNl9XRUJUVkJHXzIxMi5qcGciLCJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiY292ZXIiLCJ3aWR0aCI6Mzg0MCwiaGVpZ2h0IjoyMTYwfSwid2VicCI6eyJxdWFsaXR5Ijo2MCwibG9zc2xlc3MiOmZhbHNlfX0sIm91dHB1dEZvcm1hdCI6IndlYnAifQ==",
-            "title": "INDIA VS AFG",
+            "url": "https://ellamoonu.ai.studio/live.php?token=STALKER_PRO&id=tim_willow-usa&m3u=1&type=hls",
+            "addedAt": "2026-09-13T11:53:09.721Z",
             "id": "sports_1789300389721"
         }
     ],
+    "maintenanceVideoUploadedFile": "WhatsApp Video 2023-12-14 at 6.14.07 PM.mp4",
+    "playMaintenance": false,
+    "maintenanceVideoAutoplay": true,
+    "consumetMaintenance": false,
+    "activeTemplate": "Scheduled Downtime",
+    "maintenanceVideoEnabled": false,
+    "playConsumetMaintenance": false,
+    "maintenanceMusicQuery": "Indrajaaam",
+    "allowedDeveloperIps": [],
+    "sportsHubConfig": {
+        "subtitle": "",
+        "title": "INDIA VS AFGANAISTAN",
+        "bgUrl": "https://images.fancode.com/skillup-uploads/cms-media/AFG_IND_2026_WEBTVBG_212.jpg?hash=eyJrZXkiOiJza2lsbHVwLXVwbG9hZHMvY21zLW1lZGlhL0FGR19JTkRfMjAyNl9XRUJUVkJHXzIxMi5qcGciLCJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiY292ZXIiLCJ3aWR0aCI6Mzg0MCwiaGVpZ2h0IjoyMTYwfSwid2VicCI6eyJxdWFsaXR5Ijo2MCwibG9zc2xlc3MiOmZhbHNlfX0sIm91dHB1dEZvcm1hdCI6IndlYnAifQ==",
+        "displayMode": "grid",
+        "badge": "CRICKET"
+    },
+    "maintenanceMode": false,
+    "blacklist": [],
     "maintenanceVideoType": "youtube",
     "sportsContainers": [
         {
-            "order": 0,
-            "gridStyle": "grid",
-            "id": "default_showcase",
             "playerPng": "https://pngimg.com/d/cricket_PNG10.png",
-            "createdAt": "2026-09-13T11:50:00.000Z",
-            "gridBgUrl": "",
+            "enabled": true,
             "badge": "CRICKET LIVE",
-            "title": "INDIA VS AFGHANISTAN",
+            "gridBgUrl": "",
+            "order": 0,
+            "createdAt": "2026-09-13T11:50:00.000Z",
             "bgUrl": "https://images.fancode.com/skillup-uploads/cms-media/AFG_IND_2026_WEBTVBG_212.jpg?hash=eyJrZXkiOiJza2lsbHVwLXVwbG9hZHMvY21zLW1lZGlhL0FGR19JTkRfMjAyNl9XRUJUVkJHXzIxMi5qcGciLCJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiY292ZXIiLCJ3aWR0aCI6Mzg0MCwiaGVpZ2h0IjoyMTYwfSwid2VicCI6eyJxdWFsaXR5Ijo2MCwibG9zc2xlc3MiOmZhbHNlfX0sIm91dHB1dEZvcm1hdCI6IndlYnAifQ==",
             "cardBg": "",
-            "enabled": true,
+            "title": "INDIA VS AFGHANISTAN",
+            "gridStyle": "grid",
+            "id": "default_showcase",
             "subtitle": "Live ICC match coverage, 4K multi-camera streams, Hindi & English dugout feeds."
         }
     ],
-    "siteLockMode": false,
-    "sportsHubConfig": {
-        "bgUrl": "https://images.fancode.com/skillup-uploads/cms-media/AFG_IND_2026_WEBTVBG_212.jpg?hash=eyJrZXkiOiJza2lsbHVwLXVwbG9hZHMvY21zLW1lZGlhL0FGR19JTkRfMjAyNl9XRUJUVkJHXzIxMi5qcGciLCJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiY292ZXIiLCJ3aWR0aCI6Mzg0MCwiaGVpZ2h0IjoyMTYwfSwid2VicCI6eyJxdWFsaXR5Ijo2MCwibG9zc2xlc3MiOmZhbHNlfX0sIm91dHB1dEZvcm1hdCI6IndlYnAifQ==",
-        "subtitle": "",
-        "displayMode": "grid",
-        "badge": "CRICKET",
-        "title": "INDIA VS AFGANAISTAN"
-    },
-    "maintenanceSchedule": {
-        "autoActivate": false,
-        "scheduledTime": "",
-        "noticeText": "",
-        "durationMinutes": 60,
-        "enabled": false
-    },
-    "activeTemplate": "Scheduled Downtime",
-    "maintenanceVideoMuted": false,
+    "maintenanceVideoLoop": true,
+    "developerMode": false,
     "maintenanceMusicPlaylist": [
         {
+            "img": "https://i.ytimg.com/vi/wLG9P297wLg/hq720.jpg?sqp=-oaymwEcCNAFEJQDSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLB06TBTRb3_dF_7Lku_a76q2eIDeg",
+            "url": "/api/v1/youtube/stream?v=wLG9P297wLg&type=audio&title=Indrajaalam&artist=Vishnu%20Vijay%20-%20Topic",
             "id": "youtube_wLG9P297wLg",
             "title": "Indrajaalam",
-            "url": "/api/v1/youtube/stream?v=wLG9P297wLg&type=audio&title=Indrajaalam&artist=Vishnu%20Vijay%20-%20Topic",
-            "artist": "Vishnu Vijay - Topic",
-            "img": "https://i.ytimg.com/vi/wLG9P297wLg/hq720.jpg?sqp=-oaymwEcCNAFEJQDSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLB06TBTRb3_dF_7Lku_a76q2eIDeg"
+            "artist": "Vishnu Vijay - Topic"
         }
     ],
-    "playMaintenance": false,
     "maintenanceVideoSubtitle": "",
-    "features": {
-        "m3uEnabled": true,
-        "publicPlaylistEnabled": true,
-        "firewallEnabled": true,
-        "stalkerEnabled": true
-    },
-    "maintenanceAdminBypass": false,
-    "blacklist": [],
-    "maintenanceVideoUploadedFile": "WhatsApp Video 2023-12-14 at 6.14.07 PM.mp4",
     "systemStatus": "active",
-    "maintenanceTitle": "യുഗാവസാനം",
-    "playConsumetMaintenance": false,
-    "maintenanceVideoAutoplay": true,
-    "sportsM3uFiles": [],
     "incidents": [
         {
-            "ip": "111.92.124.164",
             "reason": "Brute Force: 5 Failed Login Attempts",
+            "timestamp": 1786780217069,
             "username": "hari",
-            "timestamp": 1786780217069
+            "ip": "111.92.124.164"
         }
     ],
-    "maintenanceMusicQuery": "Indrajaaam",
-    "liveEvents": [],
+    "features": {
+        "m3uEnabled": true,
+        "firewallEnabled": true,
+        "stalkerEnabled": true,
+        "publicPlaylistEnabled": true
+    },
+    "maintenanceVideoTitle": "",
+    "sportsM3uFiles": [],
     "m3uPlaylists": [],
-    "maintenanceVideoLoop": true,
-    "maintenanceText": "Thankyou for your support",
-    "maintenanceVideoTitle": ""
+    "backgrounds": {
+        "music": {
+            "type": "auto",
+            "url": ""
+        },
+        "index": {
+            "url": "",
+            "type": "auto"
+        },
+        "consumet": {
+            "type": "auto",
+            "url": ""
+        },
+        "musicUseSongVideo": true,
+        "hero": {
+            "type": "auto",
+            "url": ""
+        }
+    },
+    "maintenanceMusicMode": "query",
+    "maintenanceVideoMuted": false,
+    "maintenanceSchedule": {
+        "enabled": false,
+        "noticeText": "",
+        "autoActivate": false,
+        "durationMinutes": 60,
+        "scheduledTime": ""
+    },
+    "siteLockMode": false,
+    "maintenanceAdminBypass": false,
+    "maintenanceTitle": "യുഗാവസാനം"
 }

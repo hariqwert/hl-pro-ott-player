@@ -502,5 +502,33 @@
     "http_status": 404,
     "quarantined_at": "2026-09-23T15:36:13.937Z",
     "last_checked_at": "2026-09-23T15:36:13.937Z"
+  },
+  {
+    "id": "q_b4caf920c18e91ff179c0ee795634ffb",
+    "name": "tim_movistar-laliga",
+    "logo": "",
+    "stream_url": "https://juxrd.hundxvision.co.uk/main/secure/9e4c2740364886e988ac4e531a88943626006f1946371e6c281207e45356e410/1790187882/movistarlaliga-es.m3u8",
+    "group": "Unreachable / Dead Feed",
+    "playlist_id": "auto_quarantine",
+    "playlist_name": "Dynamic Live Proxy Failure",
+    "playlist_file": "",
+    "error_reason": "Upstream returned HTTP 404",
+    "http_status": 404,
+    "quarantined_at": "2026-09-23T15:54:43.046Z",
+    "last_checked_at": "2026-09-23T15:54:43.046Z"
+  },
+  {
+    "id": "q_278bbbd183e45d964ff725a20b2d751a",
+    "name": "tim_movistar-laliga",
+    "logo": "",
+    "stream_url": "https://juxrd.hundxvision.co.uk/main/secure/b0386a07153f9553d4da145a1fe92aec2c6c855c30d0462fee0c17e654a02b8e/1790187886/movistarlaliga-es.m3u8",
+    "group": "Unreachable / Dead Feed",
+    "playlist_id": "auto_quarantine",
+    "playlist_name": "Dynamic Live Proxy Failure",
+    "playlist_file": "",
+    "error_reason": "Upstream returned HTTP 404",
+    "http_status": 404,
+    "quarantined_at": "2026-09-23T15:54:47.268Z",
+    "last_checked_at": "2026-09-23T15:54:47.268Z"
   }
 ]

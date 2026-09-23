@@ -1309,9 +1309,13 @@ export class JtvService {
             console.warn('[JtvService] Failed to fetch axsports playlist.m3u:', e?.message || e);
         }
 
-        cachedEvents = events;
+        const DUMMY_EVENT_REGEX = /(ind\s*(vs|\/|-)\s*wi|india\s*(vs|\/|-)\s*west\s*indies|ind\s*(vs|\/|-)\s*afg|india\s*(vs|\/|-)\s*afghanistan|cricbuzz\s*-\s*aq|stream\.kliv\.in|ellamoonu\.ai\.studio|placeholder|testtapmad)/i;
+        cachedEvents = events.filter(e => {
+            const str = `${e.name || ''} ${e.title || ''} ${e.stream_url || ''}`;
+            return !DUMMY_EVENT_REGEX.test(str);
+        });
         lastEventsFetch = now;
-        console.log(`[JtvService] Total live sporting events: ${cachedEvents.length}`);
+        console.log(`[JtvService] Total live sporting events (after filtering dummy fixtures): ${cachedEvents.length}`);
         return cachedEvents;
     }
 

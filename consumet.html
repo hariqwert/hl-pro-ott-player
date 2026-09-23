@@ -6113,6 +6113,11 @@ async function loadLiveSportsSchedule(force = false) {
                 if (ev.stream_url.includes('.mpd') && !ev.clearkey && (!ev.key_id || ev.key_id === 'null' || (ev.key_id + '').length < 16)) {
                     return;
                 }
+                // Skip dummy/placeholder/expired matches (e.g. IND vs WI, AFG vs IND, dummy test feeds)
+                const dummyCheckStr = `${ev.name || ''} ${ev.title || ''} ${ev.stream_url || ''}`;
+                if (/(ind\s*(vs|\/|-)\s*wi|india\s*(vs|\/|-)\s*west\s*indies|ind\s*(vs|\/|-)\s*afg|india\s*(vs|\/|-)\s*afghanistan|cricbuzz\s*-\s*aq|stream\.kliv\.in|ellamoonu)/i.test(dummyCheckStr)) {
+                    return;
+                }
                 const evKey = ev.id || `jtv_ev_${idx}`;
                 if (!existingUrls.has(evKey) && !existingUrls.has(ev.name)) {
                     let pUrl = '';
@@ -6367,6 +6372,11 @@ async function loadLiveSportsSchedule(force = false) {
         // Automatically exclude ended matches, dummy unplayable fixtures, and events without streams
         window.liveNowEvents = allEvents.filter(e => {
             if (!e || isSportEventEnded(e)) return false;
+            // Purge dummy/expired matches (IND vs WI, AFG vs IND, dummy test feeds)
+            const dummyCheckStr = `${e.title || ''} ${e.rawTitle || ''} ${e.primaryM3u8Url || ''} ${e.primaryPlayUrl || ''}`;
+            if (/(ind\s*(vs|\/|-)\s*wi|india\s*(vs|\/|-)\s*west\s*indies|ind\s*(vs|\/|-)\s*afg|india\s*(vs|\/|-)\s*afghanistan|cricbuzz\s*-\s*aq|stream\.kliv\.in|ellamoonu)/i.test(dummyCheckStr)) {
+                return false;
+            }
             // Check for valid stream URLs
             const hasDirectPlayUrl = !!(e.primaryPlayUrl && e.primaryPlayUrl !== '#' && !e.primaryPlayUrl.includes('undefined'));
             const hasM3u8Url = !!(e.primaryM3u8Url && (e.primaryM3u8Url.startsWith('http') || e.primaryM3u8Url.startsWith('/')));
@@ -6584,6 +6594,25 @@ function getTeamTheme(name) {
 
 // 2. Universal VS Match Thumbnail Builder
 function buildVsMatchThumbnailHtml(e, isHero = false) {
+    // If the event has a genuine official promo thumbnail (e.g. FanCode, SonyLIV, Prime, CricHD), prioritize displaying the rich official poster!
+    const hasRealThumbnail = e.thumbnail && 
+        !e.thumbnail.includes('unsplash.com') && 
+        !e.thumbnail.includes('ui-avatars.com') &&
+        !e.thumbnail.includes('FC_Sports_Default');
+
+    if (hasRealThumbnail) {
+        return `
+            <div class="w-full h-full relative overflow-hidden bg-black flex items-center justify-center">
+                <img loading="lazy" src="${e.thumbnail}" alt="${e.title || ''}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&auto=format&fit=crop&q=80';">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none"></div>
+                ${e.sportEmoji ? `
+                <div class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-md border border-white/10 text-xs pointer-events-none">
+                    ${e.sportEmoji}
+                </div>` : ''}
+            </div>
+        `;
+    }
+
     const parsed = parseTeamsFromTitle(e.title || '');
     const t1Name = e.homeTeamName || (parsed ? parsed.team1 : '');
     const t2Name = e.awayTeamName || (parsed ? parsed.team2 : '');
@@ -8555,8 +8584,46 @@ if (liveEventsContainer) liveEventsContainer.style.display = 'none';
 // Multi-Container Showcase Studio Dynamic Rendering
 renderShowcaseContainers(window.sportsContainersList, customChannels);
 
-// Priority Spotlight: IF ADMIN ADDED CHANNEL EVENT MANAGER IS AVAILABLE MAKE THAT AS FIRST SPOTLIGHT
+// Priority Spotlight: Connect FanCode & SonyLIV live matches first so they appear in Spotlight banner
 const prioritySpotlight = [];
+if (Array.isArray(window.fancodeLiveMatches) && window.fancodeLiveMatches.length > 0) {
+    window.fancodeLiveMatches.forEach(fc => {
+        const title = fc.title || fc.eventName || fc.matchName || 'FanCode Live Match';
+        const poster = fc.thumbnail || fc.src || '';
+        const playUrl = fc.playUrl || (fc.streamUrl ? `/play_consumet.php?url=${encodeURIComponent(fc.streamUrl)}&name=${encodeURIComponent(title)}&source=consumet.html&type=hls` : '');
+        if (playUrl && !prioritySpotlight.some(p => p.url === playUrl)) {
+            prioritySpotlight.push({
+                name: title,
+                title: title,
+                url: playUrl,
+                logo: poster,
+                bgUrl: poster,
+                isAdminFeed: false,
+                isEventFeed: true,
+                badge: 'FANCODE LIVE'
+            });
+        }
+    });
+}
+if (Array.isArray(window.sonylivLiveMatches) && window.sonylivLiveMatches.length > 0) {
+    window.sonylivLiveMatches.forEach(sl => {
+        const title = sl.title || sl.eventName || 'SonyLIV Live Match';
+        const poster = sl.thumbnail || '';
+        const playUrl = sl.playUrl || (sl.streamUrl ? `/play_consumet.php?url=${encodeURIComponent(sl.streamUrl)}&name=${encodeURIComponent(title)}&source=consumet.html&type=hls` : '');
+        if (playUrl && !prioritySpotlight.some(p => p.url === playUrl)) {
+            prioritySpotlight.push({
+                name: title,
+                title: title,
+                url: playUrl,
+                logo: poster,
+                bgUrl: poster,
+                isAdminFeed: false,
+                isEventFeed: true,
+                badge: 'SONYLIV LIVE'
+            });
+        }
+    });
+}
 if (customChannels.length > 0) {
     customChannels.forEach(c => {
         prioritySpotlight.push({ ...c, isAdminFeed: true });

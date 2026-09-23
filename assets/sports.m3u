@@ -501,8 +501,6 @@ http://localhost:3000/player/mdtv?id=zee-korean-dramas&stream=https%3A%2F%2Fd1g8
 #KODIPROP:inputstream.adaptive.license_type=clearkey
 #KODIPROP:inputstream.adaptive.license_key=1779c27b9d077a3ba0c9cc1bb9a94b9f:cc5cf3b7928fb9e0a1ee6a8b566f0a8e
 http://localhost:3000/player/mdtv?id=zee-korean-dramas&stream=https%3A%2F%2Fa201aivottlinear-a.akamaihd.net%2FOTTB%2Flhr-nitro%2Fclients%2Fdash%2Fenc%2Ff60kqesunw%2Fout%2Fv1%2Fa435ed7a00f947deb4369b46d8f2fb70%2Fcenc.mpd&key=1779c27b9d077a3ba0c9cc1bb9a94b9f%3Acc5cf3b7928fb9e0a1ee6a8b566f0a8e
-#EXTINF:-1 tvg-name="INDIA VS AFG" tvg-logo="https://images.fancode.com/skillup-uploads/cms-media/AFG_IND_2026_WEBTVBG_212.jpg?hash=eyJrZXkiOiJza2lsbHVwLXVwbG9hZHMvY21zLW1lZGlhL0FGR19JTkRfMjAyNl9XRUJUVkJHXzIxMi5qcGciLCJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiY292ZXIiLCJ3aWR0aCI6Mzg0MCwiaGVpZ2h0IjoyMTYwfSwid2VicCI6eyJxdWFsaXR5Ijo2MCwibG9zc2xlc3MiOmZhbHNlfX0sIm91dHB1dEZvcm1hdCI6IndlYnAifQ==" group-title="Custom Sports",INDIA VS AFG
-https://ellamoonu.ai.studio/live.php?token=STALKER_PRO&id=tim_willow-usa&m3u=1&type=hls
 #EXTINF:-1 tvg-name="⚡ ABC" tvg-logo="https://cdn.abcotvs.com/dip/images/11479454_011822-cc-abc-generic-thumb-img.jpg" group-title="Proxy Streams",⚡ ABC
 __HOSTURL__/live.php?token=STALKER_PRO&id=tim_abc&m3u=1
 #EXTINF:-1 tvg-name="⚡ ACC Network" tvg-logo="https://theacc.com/images/2018/11/30/ACCN_Launch.png" group-title="Proxy Streams",⚡ ACC Network

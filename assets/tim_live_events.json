@@ -141,7 +141,7 @@
         "genre": 1,
         "flag": "us",
         "vip": false,
-        "viewers": 1,
+        "viewers": 2,
         "streams": [
           {
             "name": "TimStreams",
@@ -157,7 +157,7 @@
         "genre": 2,
         "flag": "us",
         "vip": false,
-        "viewers": 0,
+        "viewers": 2,
         "streams": [
           {
             "name": "TimStreams",
@@ -221,7 +221,7 @@
         "genre": 1,
         "flag": "us",
         "vip": false,
-        "viewers": 0,
+        "viewers": 1,
         "streams": [
           {
             "name": "TimStreams",
@@ -301,7 +301,7 @@
         "genre": 2,
         "flag": "us",
         "vip": false,
-        "viewers": 2,
+        "viewers": 1,
         "streams": [
           {
             "name": "TimStreams",
@@ -361,7 +361,7 @@
         "logo": "https://barrettmedia.com/wp-content/uploads/2024/07/Big-Ten-Network-BTN-Logo.jpg",
         "genre": 2,
         "vip": false,
-        "viewers": 2,
+        "viewers": 3,
         "streams": [
           {
             "name": "TimStreams",
@@ -377,7 +377,7 @@
         "genre": 3,
         "flag": "us",
         "vip": false,
-        "viewers": 0,
+        "viewers": 1,
         "streams": [
           {
             "name": "TimStreams",
@@ -530,7 +530,7 @@
         "logo": "https://1000logos.net/wp-content/uploads/2016/10/Cartoon-Network-logo.jpg",
         "genre": 3,
         "vip": false,
-        "viewers": 2,
+        "viewers": 4,
         "streams": [
           {
             "name": "TimStreams",
@@ -560,7 +560,7 @@
         "logo": "https://wwwimage-tve.cbsstatic.com/base/files/seo/cbs_seo_1200x627_1.jpg",
         "genre": 1,
         "vip": false,
-        "viewers": 2,
+        "viewers": 1,
         "streams": [
           {
             "name": "TimStreams",
@@ -590,7 +590,7 @@
         "logo": "https://cdn.versantmedia.com/versantmedia/styles/newsroom/s3/2025-11/cnbc%281600x900%29.png",
         "genre": 1,
         "vip": false,
-        "viewers": 0,
+        "viewers": 1,
         "streams": [
           {
             "name": "TimStreams",
@@ -605,7 +605,7 @@
         "logo": "https://wwwimage-us.pplusstatic.com/base/files/seo/og-brand-comedy-central.jpg?format=webp",
         "genre": 1,
         "vip": false,
-        "viewers": 1,
+        "viewers": 2,
         "streams": [
           {
             "name": "TimStreams",
@@ -815,7 +815,7 @@
         "logo": "https://vignette4.wikia.nocookie.net/logopedia/images/9/93/Disney_Channel_Original_2014.png/revision/latest?cb=20140705213010",
         "genre": 3,
         "vip": false,
-        "viewers": 0,
+        "viewers": 1,
         "streams": [
           {
             "name": "TimStreams",
@@ -920,7 +920,7 @@
         "logo": "https://a1.espncdn.com/combiner/i?img=%2Fi%2Fespn%2Fespn_logos%2Fespn_red.png",
         "genre": 2,
         "vip": false,
-        "viewers": 8,
+        "viewers": 7,
         "streams": [
           {
             "name": "TimStreams",
@@ -950,7 +950,7 @@
         "logo": "https://discgolf.ultiworld.com/wp-content/uploads/2020/10/ESPN2.png",
         "genre": 2,
         "vip": false,
-        "viewers": 0,
+        "viewers": 1,
         "streams": [
           {
             "name": "TimStreams",
@@ -965,7 +965,7 @@
         "logo": "https://i.ibb.co/5h4LGFHq/image.png",
         "genre": 2,
         "vip": false,
-        "viewers": 2,
+        "viewers": 1,
         "streams": [
           {
             "name": "TimStreams",
@@ -1010,7 +1010,7 @@
         "logo": "https://i.ibb.co/8JdwqP4/foxusa.png",
         "genre": 1,
         "vip": false,
-        "viewers": 0,
+        "viewers": 1,
         "streams": [
           {
             "name": "TimStreams",
@@ -1175,7 +1175,7 @@
         "logo": "https://static0.srcdn.com/wordpress/wp-content/uploads/2026/01/gold-fx-channel-logo-1.jpg",
         "genre": 1,
         "vip": false,
-        "viewers": 0,
+        "viewers": 1,
         "streams": [
           {
             "name": "TimStreams",
@@ -1190,7 +1190,7 @@
         "logo": "https://www.awn.com/sites/default/files/styles/original/public/image/featured/50716-buster-creates-brand-id-new-fxm-programming-block_0.jpg",
         "genre": 1,
         "vip": false,
-        "viewers": 0,
+        "viewers": 1,
         "streams": [
           {
             "name": "TimStreams",
@@ -1205,7 +1205,7 @@
         "logo": "https://thestreamable.com/media/pages/channels/fxx/b6fc72ce3d-1756344305/fxx-banner-1536x864-crop.png",
         "genre": 1,
         "vip": false,
-        "viewers": 2,
+        "viewers": 0,
         "streams": [
           {
             "name": "TimStreams",
@@ -1385,7 +1385,7 @@
         "logo": "https://img.mlbstatic.com/mlb-images/image/private/t_16x9/t_w2208/mlb/xtkynqe5wgtzaddnsus2.jpg",
         "genre": 2,
         "vip": false,
-        "viewers": 2,
+        "viewers": 3,
         "streams": [
           {
             "name": "TimStreams",
@@ -1850,7 +1850,7 @@
         "logo": "https://i.ibb.co/v4NvkZst/Untitled-design.png",
         "genre": 2,
         "vip": false,
-        "viewers": 2,
+        "viewers": 3,
         "streams": [
           {
             "name": "TimStreams",
@@ -2045,7 +2045,7 @@
         "logo": "https://e0.365dm.com/17/07/2048x1152/skysports-sky-sports-cricket-podcast-sky-cricket-podcast_4004801.jpg",
         "genre": 2,
         "vip": false,
-        "viewers": 1,
+        "viewers": 0,
         "streams": [
           {
             "name": "TimStreams",
@@ -2090,7 +2090,7 @@
         "logo": "https://images.squarespace-cdn.com/content/v1/6380a5b12f7b6f632e16ce77/46d62da8-e650-4d2b-a5bc-48a5648edb8e/Beth_Mead.jpg",
         "genre": 2,
         "vip": false,
-        "viewers": 1,
+        "viewers": 0,
         "streams": [
           {
             "name": "TimStreams",
@@ -2305,7 +2305,7 @@
         "logo": "https://cdn.jsdelivr.net/gh/willthequeencome/img-cdn/sportv-pt.png",
         "genre": 2,
         "vip": false,
-        "viewers": 0,
+        "viewers": 1,
         "streams": [
           {
             "name": "TimStreams",
@@ -2500,7 +2500,7 @@
         "logo": "https://s10019.cdn.ncms.io/wp-content/uploads/2026/05/tenn2.jpg.jpeg",
         "genre": 2,
         "vip": false,
-        "viewers": 2,
+        "viewers": 1,
         "streams": [
           {
             "name": "TimStreams",
