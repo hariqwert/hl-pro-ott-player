@@ -5890,7 +5890,7 @@ async function loadLiveSportsSchedule(force = false) {
     if (icon) icon.classList.add('animate-spin');
 
     try {
-        const [streamicRes, timEventsRes, jtvEventsRes, addedChannelsRes, adminSportsRes, highlightsRes, zeeRes, fancodeLiveRes] = await Promise.allSettled([
+        const [streamicRes, timEventsRes, jtvEventsRes, addedChannelsRes, adminSportsRes, highlightsRes, zeeRes, fancodeLiveRes, sonylivLiveRes] = await Promise.allSettled([
             fetch(`/api/streamic/schedule${force ? '?force=1' : ''}`).then(r => r.json()),
             fetch(`/api/sports/live-events${force ? '?refresh=1' : ''}`).then(r => r.json()),
             fetch(`/api/live/events`).then(r => r.json()),
@@ -5898,7 +5898,8 @@ async function loadLiveSportsSchedule(force = false) {
             fetch(`/api/sports`).then(r => r.json()),
             fetch(`/api/sports/highlights${force ? '?refresh=1' : ''}`).then(r => r.json()),
             fetch(`/api/zee/channels${force ? '?refresh=1' : ''}`).then(r => r.json()),
-            fetch(`/api/fancode/live${force ? '?refresh=1' : ''}`).then(r => r.json())
+            fetch(`/api/fancode/live${force ? '?refresh=1' : ''}`).then(r => r.json()),
+            fetch(`/api/sonyliv/live${force ? '?refresh=1' : ''}`).then(r => r.json())
         ]);
 
         if (highlightsRes.status === 'fulfilled' && highlightsRes.value?.status === 'success' && Array.isArray(highlightsRes.value.highlights)) {
@@ -5909,6 +5910,10 @@ async function loadLiveSportsSchedule(force = false) {
         }
         if (fancodeLiveRes.status === 'fulfilled' && fancodeLiveRes.value?.status === 'success' && Array.isArray(fancodeLiveRes.value.events)) {
             window.fancodeLiveMatches = fancodeLiveRes.value.events;
+        }
+        if (sonylivLiveRes.status === 'fulfilled' && sonylivLiveRes.value?.status === 'success' && Array.isArray(sonylivLiveRes.value.events)) {
+            window.sonylivLiveMatches = sonylivLiveRes.value.events;
+            window.sonylivUpcomingMatches = sonylivLiveRes.value.upcoming || [];
         }
 
         let allEvents = [];
@@ -5962,6 +5967,61 @@ async function loadLiveSportsSchedule(force = false) {
                         playUrl: fc.playUrl,
                         matchType: 'DIRECT_MATCH',
                         reason: 'Live FanCode Broadcast'
+                    }]
+                });
+            });
+        }
+
+        // High-Priority: Place active SonyLIV live streams into allEvents
+        if (window.sonylivLiveMatches && window.sonylivLiveMatches.length) {
+            window.sonylivLiveMatches.forEach(sl => {
+                allEvents.push({
+                    id: `sonyliv_${sl.contentId || sl.id}`,
+                    title: sl.title,
+                    rawTitle: sl.title,
+                    sportName: sl.sportName || sl.category || 'Football',
+                    sportEmoji: sl.sportEmoji || '⚽',
+                    category: (sl.category || 'football').toLowerCase(),
+                    league: sl.eventName || 'SonyLIV Live',
+                    countryCode: 'IN',
+                    startTime: Math.floor(Date.now() / 1000),
+                    endTime: Math.floor(Date.now() / 1000) + 10800,
+                    durationMinutes: 180,
+                    timeIST: 'LIVE NOW',
+                    dateIST: 'Today',
+                    fullIST: 'Today, LIVE NOW',
+                    status: 'LIVE',
+                    isLive: true,
+                    isStartingSoon: false,
+                    isEnded: false,
+                    canWatch: Boolean(sl.streamUrl),
+                    countdown: 'LIVE NOW',
+                    hasEnglish: true,
+                    isFamous: true,
+                    source: 'SONYLIV_LIVE',
+                    thumbnail: sl.thumbnail,
+                    userHasChannel: true,
+                    primaryPlayUrl: sl.playUrl,
+                    primaryM3u8Url: sl.streamUrl,
+                    primaryChannelName: sl.broadcastChannel || 'Sony Sports Ten 2',
+                    isSonyLiv: true,
+                    channels: [{
+                        channelName: sl.broadcastChannel || 'SonyLIV Feed',
+                        language: sl.language || 'English',
+                        isEnglish: true,
+                        userHasChannel: true,
+                        userChannelUrl: sl.streamUrl,
+                        m3u8Url: sl.streamUrl,
+                        playUrl: sl.playUrl,
+                        streams: [{ quality: '1080p', embedUrl: sl.playUrl }]
+                    }],
+                    myConvertedChannels: [{
+                        channelName: sl.broadcastChannel || 'SonyLIV Stream',
+                        url: sl.streamUrl,
+                        m3u8Url: sl.streamUrl,
+                        playUrl: sl.playUrl,
+                        matchType: 'DIRECT_MATCH',
+                        reason: 'Live SonyLIV Broadcast'
                     }]
                 });
             });
@@ -7329,6 +7389,52 @@ function renderLiveNowGrid() {
 
         if (activeFancodeList.length > 0) {
             shelvesHtml += createShelf('🏏 FanCode Live Matches (1080p Streams)', activeFancodeList, true);
+        }
+
+        // SonyLIV Shelf (Live & Upcoming Matches)
+        const sonylivMatches = events.filter(e => (e.source || '').toLowerCase().includes('sonyliv') || (e.rawTitle || e.title || '').toLowerCase().includes('sonyliv'));
+        const activeSonylivList = (sonylivMatches && sonylivMatches.length > 0) ? sonylivMatches : (window.sonylivLiveMatches || []).concat(window.sonylivUpcomingMatches || []).map(sl => ({
+            id: `sonyliv_${sl.contentId || sl.id}`,
+            title: sl.title,
+            rawTitle: sl.title,
+            sportName: sl.sportName || sl.category || 'Sports',
+            sportEmoji: sl.sportEmoji || '⚽',
+            category: (sl.category || 'sports').toLowerCase(),
+            league: sl.eventName || 'SonyLIV Sports',
+            countryCode: 'IN',
+            startTime: Math.floor(Date.now() / 1000),
+            endTime: Math.floor(Date.now() / 1000) + 14400,
+            durationMinutes: 180,
+            timeIST: sl.isLive ? 'LIVE NOW' : 'UPCOMING',
+            dateIST: 'Today',
+            fullIST: sl.isLive ? 'Live on ' + sl.broadcastChannel : 'Upcoming on ' + sl.broadcastChannel,
+            status: sl.status,
+            isLive: sl.isLive,
+            isStartingSoon: false,
+            isEnded: false,
+            canWatch: sl.isLive && Boolean(sl.streamUrl),
+            countdown: sl.isLive ? 'LIVE NOW' : 'UPCOMING',
+            hasEnglish: true,
+            isFamous: true,
+            source: 'SONYLIV_LIVE',
+            thumbnail: sl.thumbnail,
+            userHasChannel: true,
+            primaryPlayUrl: sl.playUrl,
+            primaryM3u8Url: sl.streamUrl,
+            primaryChannelName: sl.broadcastChannel || 'Sony Sports',
+            isSonyLiv: true,
+            channels: [{
+                channelName: sl.broadcastChannel || 'SonyLIV Feed',
+                language: sl.language || 'English',
+                isEnglish: true,
+                userHasChannel: true,
+                userChannelUrl: sl.streamUrl,
+                playUrl: sl.playUrl
+            }]
+        }));
+
+        if (activeSonylivList.length > 0) {
+            shelvesHtml += createShelf('📺 SonyLIV Live & Upcoming Matches', activeSonylivList, true);
         }
         if (mdtvChannelsList.length > 0) {
             shelvesHtml += createShelf('Special Channels', mdtvChannelsList, true);

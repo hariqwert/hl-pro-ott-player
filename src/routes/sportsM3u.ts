@@ -11,6 +11,7 @@ import { fetchFanCodeEvents, getFanCodeM3u } from '../services/fancodeService';
 import { getAllSportsHighlights, searchHighlights } from '../services/sportsHighlightsService';
 import { syncZeeChannels, getZeePlaylistM3u } from '../services/zeeChannelsService';
 import { getBiggBossSeasons, getBiggBossEpisodes, resolveBiggBossStream } from '../services/biggBossService';
+import { fetchSonyLivEvents } from '../services/sonylivService';
 
 const router = Router();
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours for the channel list itself
@@ -555,6 +556,26 @@ router.get('/api/fancode/live', async (req: Request, res: Response) => {
         });
     } catch (err: any) {
         res.status(500).json({ status: 'error', message: err?.message || 'Failed to fetch FanCode live events' });
+    }
+});
+
+// GET /api/sonyliv/live - Genuine ongoing and upcoming SonyLIV sports fixtures
+router.get('/api/sonyliv/live', async (req: Request, res: Response) => {
+    try {
+        const force = req.query.refresh === '1';
+        const { live, upcoming, all } = await fetchSonyLivEvents(force);
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.json({
+            status: 'success',
+            count: live.length,
+            upcomingCount: upcoming.length,
+            totalMatches: all.length,
+            events: live,
+            upcoming,
+            allMatches: all
+        });
+    } catch (err: any) {
+        res.status(500).json({ status: 'error', message: err?.message || 'Failed to fetch SonyLIV events' });
     }
 });
 
