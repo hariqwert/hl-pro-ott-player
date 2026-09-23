@@ -37,14 +37,30 @@ const CACHE_TTL_DETAILS = 60 * 60 * 1000; // 1 hour
 /**
  * Fast stream probe to verify upstream does not return HTTP 404/502/error or expired 403 sub-playlists
  */
-export async function verifyStreamReachable(url: string, timeoutMs: number = 1800): Promise<boolean> {
+export async function verifyStreamReachable(url: string, timeoutMs: number = 2500): Promise<boolean> {
     if (!url) return false;
     if (url.startsWith('/api/') || url.startsWith('/')) return true;
     if (!url.startsWith('http')) return false;
 
     // Fast-path instant bypass for known ultra-reliable CDN & Cloudflare Worker edge domains
     const lowerUrl = url.toLowerCase();
-    if (lowerUrl.includes('workers.dev') || lowerUrl.includes('knocw.com') || lowerUrl.includes('nxocw.com') || lowerUrl.includes('flocw.com') || lowerUrl.includes('dramiyos') || lowerUrl.includes('acek-cdn') || lowerUrl.includes('as-cdn') || lowerUrl.includes('animesalt') || lowerUrl.includes('vidhide')) {
+    if (
+        lowerUrl.includes('workers.dev') ||
+        lowerUrl.includes('knocw.com') ||
+        lowerUrl.includes('nxocw.com') ||
+        lowerUrl.includes('flocw.com') ||
+        lowerUrl.includes('dramiyos') ||
+        lowerUrl.includes('acek-cdn') ||
+        lowerUrl.includes('as-cdn') ||
+        lowerUrl.includes('animesalt') ||
+        lowerUrl.includes('vidhide') ||
+        lowerUrl.includes('rousav.tech') ||
+        lowerUrl.includes('rousav') ||
+        lowerUrl.includes('darkmatter') ||
+        lowerUrl.includes('aphelion') ||
+        lowerUrl.includes('hoxcv.com') ||
+        lowerUrl.includes('vdrk.site')
+    ) {
         return true;
     }
 
@@ -214,6 +230,19 @@ function bingrRequest<T = any>(pathname: string, options: {
     });
 }
 
+export const ROTATING_TMDB_KEYS = [
+    "9d83476d2e27f56748167514c69cd2b4",
+    "15d2ea6d0dc1d476efbca3eba2b9bbfb",
+    "a07e22bc18f5cb106bfe4cc1f83ad8ed"
+];
+let rotatingTmdbKeyIdx = 0;
+
+export function getRotatingTmdbKey(): string {
+    const key = process.env.TMDB_API_KEY || ROTATING_TMDB_KEYS[rotatingTmdbKeyIdx % ROTATING_TMDB_KEYS.length];
+    rotatingTmdbKeyIdx++;
+    return key;
+}
+
 /**
  * Search Movies & TV Shows via Bingr / TMDB Gateway
  */
@@ -233,9 +262,42 @@ export async function searchBingr(query: string): Promise<any> {
         } catch {}
     }
 
-    const res = await bingrRequest(`/search?q=${encodeURIComponent(clean)}`);
-    const data = res.data || { results: [] };
-    const results: any[] = Array.isArray(data.results) ? data.results : [];
+    let results: any[] = [];
+    try {
+        const res = await bingrRequest(`/search?q=${encodeURIComponent(clean)}`);
+        const data = res.data || { results: [] };
+        if (Array.isArray(data.results)) {
+            results = data.results;
+        }
+    } catch (_) {}
+
+    // Fallback: If Bingr gateway returned 0 results, query TMDB multi-search directly using working keys
+    if (results.length === 0) {
+        for (let attempt = 0; attempt < ROTATING_TMDB_KEYS.length; attempt++) {
+            const apiKey = getRotatingTmdbKey();
+            try {
+                const tmdbRes = await axios.get(`https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(clean)}&include_adult=false`, { timeout: 3500 });
+                if (tmdbRes.data?.results && Array.isArray(tmdbRes.data.results) && tmdbRes.data.results.length > 0) {
+                    for (const r of tmdbRes.data.results) {
+                        if (r.media_type === 'person') continue;
+                        results.push({
+                            id: r.id,
+                            title: r.title || r.name || 'Untitled',
+                            name: r.name || r.title,
+                            type: r.media_type || (r.title ? 'movie' : 'tv'),
+                            year: (r.release_date || r.first_air_date || '').slice(0, 4),
+                            poster: r.poster_path ? `https://image.tmdb.org/t/p/w500${r.poster_path}` : undefined,
+                            backdrop: r.backdrop_path ? `https://image.tmdb.org/t/p/w1280${r.backdrop_path}` : undefined,
+                            overview: r.overview,
+                            rating: r.vote_average,
+                            vote_count: r.vote_count
+                        });
+                    }
+                    break;
+                }
+            } catch (_) {}
+        }
+    }
 
     // Ensure the legendary 1999 One Piece Anime (TMDB 37854) is always present when searching One Piece
     if (/one\s*piece/i.test(clean)) {
@@ -264,7 +326,7 @@ export async function searchBingr(query: string): Promise<any> {
         }
     }
 
-    return { ...data, results };
+    return { results };
 }
 
 /**
@@ -331,43 +393,78 @@ export async function findTmdbMatch(
         } catch {}
     }
 
-    // Clean up title: remove resolution, extensions, brackets
+    // 1. Check for explicit bracketed or parenthesized year, e.g. "Fight Club (1999)" or "[2021]"
+    let extractedYear: string | undefined = yearHint ? String(yearHint).trim() : undefined;
+    const parenYearMatch = rawTitle.match(/\((?:19\d{2}|20[0-2]\d)\)|\[(?:19\d{2}|20[0-2]\d)\]/);
+    if (!extractedYear && parenYearMatch) {
+        extractedYear = parenYearMatch[0].replace(/[\[\]\(\)]/g, '');
+    }
+
+    // 2. Known titles where a 4-digit number is intrinsically part of the title, NEVER treat as a release year
+    const isTitleWithNumber = /\b(2001|2010|2012|2049|2077|1917|1984|300|2000|1941|1942|1408)\b/i.test(rawTitle);
+
+    // 3. If year not yet found and not an intrinsic numbered title, check for trailing or standalone release year
+    if (!extractedYear && !isTitleWithNumber) {
+        const trailingYearMatch = rawTitle.match(/\b(19\d{2}|20[0-2]\d)\b/);
+        if (trailingYearMatch) {
+            extractedYear = trailingYearMatch[1];
+        }
+    }
+
+    // 4. Clean up title: remove bracketed text, release tags, qualities, languages, etc.
     let clean = rawTitle
-        .replace(/\[.*?\]|\(.*?\)/g, (match) => {
-            if (/\b(19\d{2}|20\d{2})\b/.test(match)) return match;
-            return '';
-        })
-        .replace(/\b(4K|UHD|FHD|HD|HEVC|H\.264|H\.265|1080p|720p|WEB-DL|BluRay|HDR|AAC|x264|x265|Extended|Unrated|Multi|Hindi|English|Tamil|Telugu)\b/gi, '')
+        .replace(/\[.*?\]|\(.*?\)/g, '')
+        .replace(/\b(https?:\/\/\S+|www\.\S+)\b/gi, '')
+        // Strip season and episode codes
+        .replace(/\bS\d{1,2}(?:\s*E\d{1,2})?\b/gi, '')
+        .replace(/\b(?:Season|Series|Episode|Ep)\s*\d+\b/gi, '')
+        .replace(/\bE\d{1,3}\b/gi, '')
+        // Strip audio/video formats & resolutions
+        .replace(/\b(4K|UHD|FHD|HD|1080p?|720p?|480p?|2160p?|WEB-?DL|WEBRip|Blu-?Ray|BRRip|BDRip|HDTV|DVDRip|REMUX|PROPER|REPACK|HDR\d*|HEVC|x264|x265|H\.?264|H\.?265|10bit|AV1)\b/gi, '')
+        // Strip audio channels and codecs
+        .replace(/\b(AAC\d*|AC3|DDP\d*(\.\d*)?|Dolby|Atmos|TrueHD|5\.1|7\.1|Dual\s*Audio|Multi\s*Audio)\b/gi, '')
+        // Strip languages & dubs
+        .replace(/\b(Hindi|English|Tamil|Telugu|Kannada|Malayalam|Bengali|Marathi|Punjabi|Gujarati|Dubbed|Org|Subbed|Eng\s*Sub)\b/gi, '')
         .replace(/[._-]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
 
-    // Extract year if present in title
-    const yearMatch = rawTitle.match(/\b(19\d{2}|20\d{2})\b/);
-    const year = yearHint ? String(yearHint) : (yearMatch ? yearMatch[1] : undefined);
-    
-    // Strip year out of clean search title
-    if (year) {
-        clean = clean.replace(new RegExp(`\\b${year}\\b`, 'g'), '').trim();
+    // If we extracted a verified release year AND it is not an intrinsic numbered title, strip it from clean search title
+    if (extractedYear && !isTitleWithNumber) {
+        clean = clean.replace(new RegExp(`\\b${extractedYear}\\b`, 'g'), '').trim();
     }
 
-    if (!clean) clean = rawTitle.trim();
+    if (!clean) clean = rawTitle.replace(/[._-]/g, ' ').replace(/\s+/g, ' ').trim();
 
     try {
-        const searchRes = await searchBingr(clean);
-        const results: any[] = searchRes?.results || [];
+        let searchRes = await searchBingr(clean);
+        let results: any[] = searchRes?.results || [];
+
+        // Fallback 1: If 0 results and clean differs from rawTitle, try searching rawTitle without punctuation
+        if (results.length === 0 && clean.toLowerCase() !== rawTitle.toLowerCase()) {
+            const rawSimple = rawTitle.replace(/[\[\]\(\)._-]/g, ' ').replace(/\s+/g, ' ').trim();
+            const fallbackRes = await searchBingr(rawSimple);
+            results = fallbackRes?.results || [];
+        }
+
+        // Fallback 2: If still 0 results and we have an extractedYear, try searching clean without year constraint
+        if (results.length === 0 && extractedYear) {
+            const unconstrainedRes = await searchBingr(clean);
+            results = unconstrainedRes?.results || [];
+        }
+
         if (results.length === 0) return null;
 
         // Score results
         let bestMatch: any = null;
-        let bestScore = -1;
+        let bestScore = -999;
 
-        const isAnimeQuery = /\b(anime|animated|animation|japanese|1999|straw hat|luffy|wano|egghead|marineford)\b/i.test(rawTitle) || /\b(anime|animated|animation|japanese|1999|straw hat|luffy|wano|egghead|marineford)\b/i.test(clean);
+        const isAnimeQuery = /\b(anime|animated|animation|japanese|straw hat|luffy|wano|egghead|marineford)\b/i.test(rawTitle) || /\b(anime|animated|animation|japanese|straw hat|luffy|wano|egghead|marineford)\b/i.test(clean);
         const isLiveActionQuery = /\b(live action|live-action|netflix|2023)\b/i.test(rawTitle) || /\b(live action|live-action|netflix|2023)\b/i.test(clean);
 
         // Fast priority check for One Piece: unless live action is explicitly requested or year is 2023, return the legendary 1999 anime
         if (/one\s*piece/i.test(clean)) {
-            if (!isLiveActionQuery && (!year || year !== '2023')) {
+            if (!isLiveActionQuery && (!extractedYear || extractedYear !== '2023')) {
                 try {
                     const animeDetails = await getTvDetails(37854);
                     if (animeDetails && animeDetails.id) {
@@ -382,33 +479,70 @@ export async function findTmdbMatch(
             }
         }
 
+        const cleanLower = clean.toLowerCase();
+
         for (const item of results) {
             let score = 0;
             const itemType = item.type || (item.name ? 'tv' : 'movie');
-            if (itemType === expectedType) score += 30;
 
-            const itemTitle = (item.title || item.name || '').toLowerCase();
-            const searchCleanLower = clean.toLowerCase();
-
-            if (itemTitle === searchCleanLower) score += 50;
-            else if (itemTitle.includes(searchCleanLower) || searchCleanLower.includes(itemTitle)) score += 25;
-
-            const itemYearStr = item.year ? String(item.year).slice(0, 4) : '';
-            if (year && itemYearStr === String(year)) {
-                score += 30;
+            // Strictly separate Movies and TV Shows
+            if (itemType === expectedType) {
+                score += 50;
+            } else {
+                score -= 150; // Severe penalty for mismatched media type
             }
 
-            // Differentiate One Piece Anime (TMDB 37854, 1999) from One Piece Live Action (TMDB 111110, 2023)
+            const itemTitle = (item.title || item.name || '').toLowerCase();
+
+            // Exact title matching
+            if (itemTitle === cleanLower) {
+                score += 100;
+            } else if (itemTitle.startsWith(cleanLower) || cleanLower.startsWith(itemTitle)) {
+                score += 60;
+            } else if (itemTitle.includes(cleanLower) || cleanLower.includes(itemTitle)) {
+                score += 40;
+            }
+
+            // Intrinsic number match (e.g. 2049 in "Blade Runner 2049", 2077 in "Cyberpunk 2077")
+            if (isTitleWithNumber) {
+                const numMatch = rawTitle.match(/\b(2001|2010|2012|2049|2077|1917|1984|300|2000)\b/);
+                if (numMatch && itemTitle.includes(numMatch[1])) {
+                    score += 120; // Massive boost for matching the intrinsic title number
+                }
+            }
+
+            // Year scoring
+            const itemYearStr = item.year ? String(item.year).slice(0, 4) : '';
+            if (extractedYear && itemYearStr) {
+                if (itemYearStr === String(extractedYear)) {
+                    score += 60;
+                } else {
+                    const diff = Math.abs(parseInt(itemYearStr, 10) - parseInt(String(extractedYear), 10));
+                    if (diff <= 1) {
+                        score += 30; // 1-year tolerance
+                    } else {
+                        score -= 50; // Penalize wrong release year
+                    }
+                }
+            }
+
+            // Popularity / vote count tie-breaker (boost real blockbusters over zero-vote home videos)
+            const votes = Number(item.vote_count || item.rating || 0);
+            if (votes > 0) {
+                score += Math.min(25, Math.log10(votes + 1) * 8);
+            }
+
+            // One Piece differentiation
             if (item.id === 37854 || itemTitle.includes('one piece')) {
                 if (item.id === 37854) {
-                    if (isAnimeQuery || (!isLiveActionQuery && (!year || year === '1999'))) {
-                        score += 90; // Overwhelming boost for legendary 1999 Anime
+                    if (isAnimeQuery || (!isLiveActionQuery && (!extractedYear || extractedYear === '1999'))) {
+                        score += 90;
                     }
                 } else if (item.id === 111110) {
-                    if (isLiveActionQuery || year === '2023') {
-                        score += 90; // Boost Live Action only when explicitly requested
+                    if (isLiveActionQuery || extractedYear === '2023') {
+                        score += 90;
                     } else {
-                        score -= 60; // Penalize live action if not explicitly requested
+                        score -= 60;
                     }
                 }
             }
@@ -419,7 +553,7 @@ export async function findTmdbMatch(
             }
         }
 
-        if (bestMatch && bestMatch.id) {
+        if (bestMatch && bestMatch.id && bestScore > 0) {
             return {
                 id: bestMatch.id,
                 title: bestMatch.title || bestMatch.name,
@@ -481,20 +615,6 @@ export async function getSubtitles(type: 'movie' | 'tv', tmdbId: number | string
 
 const TMDB_RUNTIME_CACHE = new Map<string, { runtime: number; timestamp: number }>();
 const TMDB_RUNTIME_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours
-
-const ROTATING_TMDB_KEYS = [
-    "844dba0bfd8f3a231a957b6e07a10be8",
-    "9d83476d2e27f56748167514c69cd2b4",
-    "15d2ea6d0dc1d476efbca3eba2b9bbfb",
-    "a07e22bc18f5cb106bfe4cc1f83ad8ed"
-];
-let rotatingTmdbKeyIdx = 0;
-
-function getRotatingTmdbKey(): string {
-    const key = process.env.TMDB_API_KEY || ROTATING_TMDB_KEYS[rotatingTmdbKeyIdx % ROTATING_TMDB_KEYS.length];
-    rotatingTmdbKeyIdx++;
-    return key;
-}
 
 /**
  * Retrieves expected runtime from TMDB with caching and key rotation
@@ -921,10 +1041,23 @@ export async function scrapeBingrStream(params: {
             const latencyMs = Date.now() - startTime;
 
             if (sources && sources.length > 0) {
+                // Always prioritize highest resolution quality: 4K / 2160p > 1080p > 720p > 480p
+                sources.sort((a, b) => {
+                    const qScore = (q: string = '') => {
+                        const l = q.toLowerCase();
+                        if (l.includes('4k') || l.includes('2160')) return 4000;
+                        if (l.includes('1080') || l.includes('fhd')) return 1080;
+                        if (l.includes('720') || l.includes('hd')) return 720;
+                        if (l.includes('480')) return 480;
+                        return 500;
+                    };
+                    return qScore(b.quality) - qScore(a.quality);
+                });
+
                 const candidateUrl = sources[0].url;
 
                 // Ultra-fast reachability check
-                const isReachable = await verifyStreamReachable(candidateUrl, 1800);
+                const isReachable = await verifyStreamReachable(candidateUrl, 2500);
                 if (!isReachable) {
                     attempts.push({
                         serverId,
@@ -969,7 +1102,7 @@ export async function scrapeBingrStream(params: {
                     serverName: serverMeta.name,
                     scraperName: scraperName,
                     primaryM3u8: candidateUrl,
-                    quality: sources[0].quality || 'Auto',
+                    quality: sources[0].quality || '1080p',
                     sources: sources,
                     subtitles: subtitles,
                     expectedDurationMinutes: durCheck.expected,
@@ -1055,14 +1188,20 @@ export async function scrapeBingrStream(params: {
         mediaTitle && mediaTitle.match(/naruto|titan|dragon ball|one piece|jujutsu|bleach|hero academia|slayer|hunter|clover|alchemist|evangelion|death note|sword art|ghoul|tokyo|chainsaw|frieren|dandadan|solo leveling|kaiju|boruto|inuyasha|haikyu|basket|detective conan|gintama|steins|dr\.?\s*stone|code geass|fairy tail|vinland|berserk|monster|cowboy bebop|mob psycho|rezero|re:zero|overlord|slime|danmachi|fate|konosuba|blue lock|spy x family|baki/i)
     );
 
-    // If confirmed as anime via MAL ID or intro skip timing, try AnimeSalt first!
+    // If confirmed as anime, try AnimeSalt first
     if (!successResult && isAnimeConfirmed) {
         successResult = await tryServer('animesalt');
     }
 
+    // PRIORITY #1: Aphelion (s40) - Fast Direct 1080p Stream (~350ms resolution).
+    // Try s40 FIRST and return immediately if resolved!
+    if (!successResult && !isAnimeLikely) {
+        successResult = await tryServer('s40');
+    }
+
     if (!successResult) {
-        // TIER 1: Lightning Strike Race (s40 Aphelion 1st, s62 Bastion, m4u Movie4U, s61 Corvus)
-        const tier1Servers = isAnimeLikely ? ['animesalt', 's40', 's62'] : ['s40', 's62', 'm4u', 's61'];
+        // TIER 1: High-Speed Multi-Audio Race (s62 Bastion, s61 Corvus; plus animesalt/s40 if not yet tried)
+        const tier1Servers = isAnimeLikely ? ['animesalt', 's40', 's62'] : ['s62', 's61'];
         const tier1Promises = tier1Servers.map(srv => tryServer(srv));
         const tier1Results = await Promise.allSettled(tier1Promises);
         for (const res of tier1Results) {
@@ -1074,8 +1213,8 @@ export async function scrapeBingrStream(params: {
     }
 
     if (!successResult) {
-        // TIER 2: Concurrently race remaining high-speed clusters (Edmunds, Polaris, Nova, Orion, PeakStream, etc.)
-        const tier2Servers = ['animesalt', 's3', 's70', 's30', 's31', 's4k', 's60'];
+        // TIER 2: Extended Fallback Clusters (Movie4U, Edmunds s3, Polaris s70, Nova s30, Orion s31, PeakStream s4k, Vertex s60)
+        const tier2Servers = ['m4u', 's3', 's70', 's30', 's31', 's4k', 's60', 'animesalt'];
         const tier2Promises = tier2Servers.map(srv => tryServer(srv));
         const tier2Results = await Promise.allSettled(tier2Promises);
         for (const res of tier2Results) {

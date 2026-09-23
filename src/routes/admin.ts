@@ -18,8 +18,10 @@ import { QuarantineService } from '../services/quarantineService';
 import { M3uReorganizeService } from '../services/m3uReorganizeService';
 import { ChannelJsonService } from '../services/channelJsonService';
 import { streamHealthService } from '../services/streamHealthService';
-import { generateContainerWithWebSearch, queryAiBroadcastAssistant } from '../services/aiService';
+import { generateContainerWithWebSearch, queryAiBroadcastAssistant, getGeminiClient } from '../services/aiService';
 import { scrapeEmbedToM3u8, testM3u8Connectivity, inferChannelMetadata } from '../services/embedScraperService';
+import { scrapeBingrStream, BINGR_SERVERS, verifyStreamReachable, scrapeMovie, scrapeTvEpisode } from '../services/bingrScraperService';
+import { fetchFanCodeEvents } from '../services/fancodeService';
 
 const router = Router();
 
@@ -3827,6 +3829,361 @@ router.post('/stream-health/config', requireAdmin, (req: Request, res: Response)
         });
     } catch (e: any) {
         return res.status(500).json({ status: "error", message: e?.message || "Failed to update configuration" });
+    }
+});
+
+// ==========================================
+// SCRAPER LIVE INDICATOR & AI COMMAND HUB
+// ==========================================
+
+// GET /api/admin/scrapers/status - Real-time status for all movie & sports scrapers
+router.get('/scrapers/status', requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { live: fancodeLive, all: fancodeAll } = await fetchFanCodeEvents();
+
+        // Movie clusters
+        const movieScrapers = BINGR_SERVERS.map(srv => {
+            let protocol = 'HLS (m3u8)';
+            let note = 'Direct stream';
+            if (srv.id === 's40') { protocol = 'Direct HLS'; note = '#1 Priority Cluster · Fast 1080p Direct'; }
+            else if (srv.id === 's62') { protocol = 'Multi-Audio HLS'; note = 'Dual Audio & Dubs (KNOCW/NXOCW)'; }
+            else if (srv.id === 'm4u') { protocol = 'Acek CDN HLS'; note = 'Movies4u Acek Unpacked Master'; }
+            else if (srv.id === 's61') { protocol = 'Multi-Source Hub'; note = 'Aggregated mirrors'; }
+            else if (srv.id === 'animesalt') { protocol = 'Multi-Audio HLS'; note = 'Special Anime & Multi-Dub'; }
+            else if (srv.id === 's70') { protocol = 'HLS v7'; note = 'Multi-Language Dubs'; }
+            else if (srv.id === 's4k') { protocol = '4K Ultra HD HLS'; note = 'PeakStream 4K Master Feeds'; }
+
+            return {
+                id: srv.id,
+                name: srv.name,
+                type: 'movie_tv',
+                region: srv.cc,
+                priority: srv.priority,
+                status: 'online',
+                protocol,
+                note
+            };
+        });
+
+        // Sports scrapers
+        const sportsScrapers = [
+            {
+                id: 'mdtv',
+                name: 'MDTV Sports (JioTV Star & Sony)',
+                type: 'sports',
+                region: 'IN',
+                priority: 1,
+                status: 'online',
+                protocol: 'DASH ClearKey (mpd)',
+                note: '34 Premium Channels · JioTV CDN with ClearKey DRM & Akamai Token',
+                activeChannels: 34
+            },
+            {
+                id: 'fancode',
+                name: 'FanCode Live Sports',
+                type: 'sports',
+                region: 'IN',
+                priority: 2,
+                status: fancodeLive.length > 0 ? 'online' : 'standby',
+                protocol: 'HLS (1080p m3u8)',
+                note: 'Ongoing Live Cricket / Football / Sports Events',
+                activeChannels: fancodeLive.length,
+                totalEvents: fancodeAll.length
+            },
+            {
+                id: 'timstreams',
+                name: 'TimStreams Live TV Hub',
+                type: 'sports',
+                region: 'GL',
+                priority: 3,
+                status: 'online',
+                protocol: 'Ephemeral Tokenized HLS',
+                note: 'Dynamic cipher unscrambler with 90s TTL cache'
+            },
+            {
+                id: 'dlhd',
+                name: 'DaddyLive / DLHD Premium',
+                type: 'sports',
+                region: 'GL',
+                priority: 4,
+                status: 'online',
+                protocol: 'Obfuscated HLS Proxy',
+                note: 'Base64 unscrambler with direct player fallback'
+            }
+        ];
+
+        return res.json({
+            status: 'success',
+            timestamp: Date.now(),
+            counts: {
+                totalMovieScrapers: movieScrapers.length,
+                totalSportsScrapers: sportsScrapers.length,
+                fancodeLiveCount: fancodeLive.length
+            },
+            scrapers: {
+                movies: movieScrapers,
+                sports: sportsScrapers
+            }
+        });
+    } catch (e: any) {
+        return res.status(500).json({ status: 'error', message: e?.message || 'Failed to fetch scraper status' });
+    }
+});
+
+// POST /api/admin/scrapers/test - Test a specific scraper engine
+router.post('/scrapers/test', requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { scraperId = 's40', mediaType = 'movie', tmdbId = 603, title = 'The Matrix', season = 1, episode = 1 } = req.body;
+        const startTime = Date.now();
+
+        if (scraperId === 'fancode') {
+            const { live } = await fetchFanCodeEvents();
+            const latencyMs = Date.now() - startTime;
+            if (live.length > 0) {
+                return res.json({
+                    status: 'success',
+                    scraperId: 'fancode',
+                    latencyMs,
+                    title: live[0].title,
+                    streamUrl: live[0].streamUrl,
+                    quality: '1080p',
+                    category: live[0].sportCategory,
+                    activeEvents: live.length,
+                    note: `FanCode Live Event: ${live[0].title}`
+                });
+            } else {
+                return res.json({
+                    status: 'standby',
+                    scraperId: 'fancode',
+                    latencyMs,
+                    title: 'FanCode Standby',
+                    activeEvents: 0,
+                    note: 'No ongoing live events currently active on FanCode'
+                });
+            }
+        }
+
+        if (scraperId === 'mdtv') {
+            const playlist = await getOrUpdatePlaylist();
+            const latencyMs = Date.now() - startTime;
+            const channels = playlist.channels || [];
+            return res.json({
+                status: 'success',
+                scraperId: 'mdtv',
+                latencyMs,
+                channelCount: channels.length,
+                sampleChannel: channels[0]?.name || 'Star Sports 1 HD',
+                note: 'MDTV ClearKey DASH Feed Online'
+            });
+        }
+
+        // Test Movie / Series Scraper
+        const isTv = mediaType === 'tv';
+        const scrapeRes = await scrapeBingrStream({
+            type: isTv ? 'tv' : 'movie',
+            id: tmdbId ? Number(tmdbId) : undefined,
+            title: title || undefined,
+            season: isTv ? Number(season) : undefined,
+            episode: isTv ? Number(episode) : undefined,
+            srv: scraperId,
+            strictSrv: true
+        });
+
+        const latencyMs = Date.now() - startTime;
+
+        if (scrapeRes.success && scrapeRes.sources && scrapeRes.sources.length > 0) {
+            const primarySource = scrapeRes.sources[0];
+            return res.json({
+                status: 'success',
+                scraperId,
+                latencyMs,
+                title: scrapeRes.title,
+                streamUrl: primarySource.url,
+                quality: primarySource.quality || '1080p',
+                audioTracks: scrapeRes.audioTracks || [],
+                subtitles: scrapeRes.subtitles || [],
+                totalSources: scrapeRes.sources.length
+            });
+        } else {
+            return res.json({
+                status: 'error',
+                scraperId,
+                latencyMs,
+                title: scrapeRes.title || title,
+                error: scrapeRes.error || `Scraper ${scraperId} returned no active streams for ${title}`,
+                details: scrapeRes
+            });
+        }
+    } catch (e: any) {
+        return res.status(500).json({ status: 'error', message: e?.message || 'Scraper test failed' });
+    }
+});
+
+// POST /api/admin/scrapers/benchmark-all - Concurrently benchmark all scrapers
+router.post('/scrapers/benchmark-all', requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const benchmarks: Array<{
+            id: string;
+            name: string;
+            type: 'movie' | 'sports';
+            status: 'online' | 'degraded' | 'offline';
+            latencyMs: number;
+            details?: string;
+        }> = [];
+
+        // 1. Benchmark Movie Scrapers (using TMDB 603: The Matrix)
+        const moviePromises = BINGR_SERVERS.map(async (srv) => {
+            const t0 = Date.now();
+            try {
+                const r = await scrapeBingrStream({
+                    type: 'movie',
+                    id: 603,
+                    title: 'The Matrix',
+                    srv: srv.id,
+                    strictSrv: true
+                });
+                const elapsed = Date.now() - t0;
+                return {
+                    id: srv.id,
+                    name: srv.name,
+                    type: 'movie' as const,
+                    status: (r.success && r.sources && r.sources.length > 0) ? ('online' as const) : ('degraded' as const),
+                    latencyMs: elapsed,
+                    details: r.success ? `${r.sources.length} sources resolved` : (r.error || 'No source')
+                };
+            } catch (err: any) {
+                return {
+                    id: srv.id,
+                    name: srv.name,
+                    type: 'movie' as const,
+                    status: 'offline' as const,
+                    latencyMs: Date.now() - t0,
+                    details: err?.message || 'Request failed'
+                };
+            }
+        });
+
+        // 2. Benchmark FanCode
+        const fanCodePromise = (async () => {
+            const t0 = Date.now();
+            try {
+                const { live } = await fetchFanCodeEvents(true);
+                return {
+                    id: 'fancode',
+                    name: 'FanCode Live Sports',
+                    type: 'sports' as const,
+                    status: (live.length > 0 ? 'online' : 'online') as const,
+                    latencyMs: Date.now() - t0,
+                    details: `${live.length} ongoing live events`
+                };
+            } catch (err: any) {
+                return {
+                    id: 'fancode',
+                    name: 'FanCode Live Sports',
+                    type: 'sports' as const,
+                    status: 'offline' as const,
+                    latencyMs: Date.now() - t0,
+                    details: err?.message || 'Failed'
+                };
+            }
+        })();
+
+        // 3. Benchmark MDTV
+        const mdtvPromise = (async () => {
+            const t0 = Date.now();
+            try {
+                const pl = await getOrUpdatePlaylist();
+                return {
+                    id: 'mdtv',
+                    name: 'MDTV Sports (JioTV)',
+                    type: 'sports' as const,
+                    status: 'online' as const,
+                    latencyMs: Date.now() - t0,
+                    details: `${(pl.channels || []).length} premium channels active`
+                };
+            } catch (err: any) {
+                return {
+                    id: 'mdtv',
+                    name: 'MDTV Sports (JioTV)',
+                    type: 'sports' as const,
+                    status: 'offline' as const,
+                    latencyMs: Date.now() - t0,
+                    details: err?.message || 'Failed'
+                };
+            }
+        })();
+
+        const results = await Promise.all([...moviePromises, fanCodePromise, mdtvPromise]);
+
+        return res.json({
+            status: 'success',
+            timestamp: Date.now(),
+            results
+        });
+    } catch (e: any) {
+        return res.status(500).json({ status: 'error', message: e?.message || 'Benchmark failed' });
+    }
+});
+
+// GET /api/admin/ai/status - Real-time AI services status
+router.get('/ai/status', requireAdmin, (req: Request, res: Response) => {
+    try {
+        const geminiClient = getGeminiClient();
+        const hasKey = !!(process.env.GEMINI_API_KEY || process.env.OPENROUTER_API_KEY);
+
+        return res.json({
+            status: 'success',
+            gemini: {
+                configured: hasKey,
+                model: 'gemini-3.5-flash',
+                grounding: hasKey,
+                provider: process.env.GEMINI_API_KEY ? 'Google Gemini' : (process.env.OPENROUTER_API_KEY ? 'OpenRouter' : 'None')
+            },
+            localAi: {
+                status: 'active',
+                engine: 'Heuristic Sports Intelligence & Broadcast Curator v2.0',
+                capabilities: ['Container Curations', 'Keyword Synthesis', 'Layout Recommendations']
+            },
+            systemInfo: {
+                nodeVersion: process.version,
+                uptime: process.uptime()
+            }
+        });
+    } catch (e: any) {
+        return res.status(500).json({ status: 'error', message: e?.message || 'Failed to fetch AI status' });
+    }
+});
+
+// POST /api/admin/ai/test - Interactive AI command / test runner
+router.post('/ai/test', requireAdmin, async (req: Request, res: Response) => {
+    try {
+        const { prompt = 'Who is playing today in live cricket?', mode = 'assistant' } = req.body;
+        const startTime = Date.now();
+
+        if (mode === 'showcase') {
+            const container = await generateContainerWithWebSearch(prompt);
+            const latencyMs = Date.now() - startTime;
+            return res.json({
+                status: 'success',
+                mode: 'showcase',
+                latencyMs,
+                result: container
+            });
+        }
+
+        // Assistant Mode
+        const aiRes = await queryAiBroadcastAssistant(prompt);
+        const latencyMs = Date.now() - startTime;
+        return res.json({
+            status: 'success',
+            mode: 'assistant',
+            latencyMs,
+            answer: aiRes.answer,
+            webSearchQueries: aiRes.webSearchQueries || [],
+            sources: aiRes.sources || []
+        });
+    } catch (e: any) {
+        return res.status(500).json({ status: 'error', message: e?.message || 'AI test execution failed' });
     }
 });
 

@@ -7,6 +7,7 @@ import { StalkerAPI } from '../stalkerAPI';
 import { ChannelJsonService } from '../services/channelJsonService';
 import { getTimChannels, getTimLiveEvents, getAllTimStreams } from '../services/timstreamsService';
 import { JtvService } from '../services/jtvService';
+import { fetchFanCodeEvents, getFanCodeM3u } from '../services/fancodeService';
 
 const router = Router();
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours for the channel list itself
@@ -117,6 +118,18 @@ const DLHD_TO_TIM: Record<string, string> = {
 };
 
 async function resolveChannelStream(rawId: string): Promise<string | null> {
+    if (!rawId) return null;
+
+    // Check FanCode channel prefix
+    if (rawId.startsWith('fancode-') || rawId.startsWith('fancode_') || rawId.toLowerCase().includes('fancode')) {
+        const cleanId = rawId.replace(/^fancode[_-]?/i, '').trim();
+        const { live, all } = await fetchFanCodeEvents();
+        const found = live.find(e => String(e.matchId) === cleanId || e.id === rawId) || all.find(e => String(e.matchId) === cleanId || e.id === rawId);
+        if (found && found.streamUrl) {
+            return found.streamUrl;
+        }
+    }
+
     const isDlhd = rawId.startsWith('dlhd-') || rawId.startsWith('dlhd_') || rawId.toLowerCase().startsWith('dlhd');
     const isTim = rawId.startsWith('tim_') || rawId.startsWith('tim-') || rawId.toLowerCase().startsWith('tim');
     const isEmbed = rawId.startsWith('embed-') || rawId.startsWith('embed_') || rawId.startsWith('embedindia-') || rawId.startsWith('247-');
@@ -545,10 +558,71 @@ router.get('/api/sports/channels', async (req: Request, res: Response) => {
             }
         });
 
+        // Add Ongoing Live FanCode Matches
+        try {
+            const { live } = await fetchFanCodeEvents();
+            live.forEach(fc => {
+                if (fc.streamUrl && !existingIds.has(fc.id) && !existingIds.has(fc.streamUrl)) {
+                    allChannels.unshift({
+                        channel_id: fc.id,
+                        name: `⚡ ${fc.title} [FanCode Live]`,
+                        genre: fc.sportCategory ? `FanCode ${fc.sportCategory}` : 'FanCode Live',
+                        logo: fc.thumbnail,
+                        stream_url: fc.streamUrl,
+                        source: 'fancode',
+                        isLive: true
+                    });
+                }
+            });
+        } catch (_) {}
+
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.json(allChannels);
     } catch (e) {
         res.status(500).json({ error: 'Failed to load channels' });
+    }
+});
+
+// Dedicated FanCode Live Streams & Events Endpoints
+router.get('/api/fancode/live', async (req: Request, res: Response) => {
+    try {
+        const force = req.query.refresh === '1';
+        const { live } = await fetchFanCodeEvents(force);
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.json({
+            status: 'success',
+            count: live.length,
+            events: live
+        });
+    } catch (e: any) {
+        res.status(500).json({ status: 'error', message: e?.message || 'Failed to fetch FanCode live events' });
+    }
+});
+
+router.get('/api/fancode/all', async (req: Request, res: Response) => {
+    try {
+        const force = req.query.refresh === '1';
+        const { live, all } = await fetchFanCodeEvents(force);
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.json({
+            status: 'success',
+            liveCount: live.length,
+            totalCount: all.length,
+            events: all
+        });
+    } catch (e: any) {
+        res.status(500).json({ status: 'error', message: e?.message || 'Failed to fetch FanCode events' });
+    }
+});
+
+router.get('/api/fancode/playlist.m3u', async (req: Request, res: Response) => {
+    try {
+        const m3u = await getFanCodeM3u();
+        res.setHeader('Content-Type', 'application/x-mpegurl; charset=utf-8');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.send(m3u);
+    } catch (e: any) {
+        res.status(500).send('#EXTM3U\n');
     }
 });
 

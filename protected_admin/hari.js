@@ -108,7 +108,8 @@ const tabContents = {
     channelsjson: document.getElementById('tabContent-channelsjson'),
     liveevents: document.getElementById('tabContent-liveevents'),
     builder: document.getElementById('tabContent-builder'),
-    analytics: document.getElementById('tabContent-analytics')
+    analytics: document.getElementById('tabContent-analytics'),
+    scrapers: document.getElementById('tabContent-scrapers')
 };
 
 // Dashboard Elements
@@ -559,7 +560,7 @@ function switchTab(tabId) {
     if (mainViewport) mainViewport.scrollTop = 0;
     
     // Update active tab styles
-    ['overview', 'portals', 'm3u', 'channelsjson', 'quarantine', 'reorganize', 'monitor', 'system', 'sports', 'embedscraper', 'liveevents', 'builder', 'analytics'].forEach(id => {
+    ['overview', 'portals', 'm3u', 'channelsjson', 'quarantine', 'reorganize', 'monitor', 'system', 'sports', 'embedscraper', 'liveevents', 'builder', 'analytics', 'scrapers'].forEach(id => {
         const btn = document.getElementById(`tabBtn-${id}`);
         if (!btn) return;
         if (id === tabId) {
@@ -577,6 +578,10 @@ function switchTab(tabId) {
     if (tabId === 'overview') { fetchStats(); fetchSystemStatus(); fetchSiteLockSettings(); }
     if (tabId === 'portals') fetchPortals();
     if (tabId === 'm3u') fetchPlaylists();
+    if (tabId === 'scrapers') {
+        loadScrapersStatus();
+        loadAiStatus();
+    }
     if (tabId === 'embedscraper') {
         fetchScrapedChannels();
         populateScrapedContainerOptions();
@@ -9970,5 +9975,493 @@ async function openChange2faPinModal() {
     }
 }
 window.openChange2faPinModal = openChange2faPinModal;
+
+// ========================================================
+// SCRAPER LIVE INDICATOR & AI COMMAND HUB (CLIENT LOGIC)
+// ========================================================
+let currentAiTestMode = 'assistant';
+let scraperPreviewHls = null;
+let lastScrapersCache = null;
+
+async function loadScrapersStatus(forceRefresh = false) {
+    const movieGrid = document.getElementById('movieScrapersGrid');
+    const sportsGrid = document.getElementById('sportsScrapersGrid');
+    if (!movieGrid || !sportsGrid) return;
+
+    if (!lastScrapersCache || forceRefresh) {
+        movieGrid.innerHTML = `
+            <div class="col-span-full p-8 text-center bg-gray-950 rounded-2xl border border-gray-800 text-gray-400">
+                <i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto text-blue-500 mb-2"></i>
+                <p class="text-xs font-bold">Scanning scraper clusters and probing live feeds...</p>
+            </div>
+        `;
+    }
+
+    try {
+        const res = await secureFetch('/api/admin/scrapers/status');
+        const data = await res.json();
+
+        if (res.ok && data.status === 'success') {
+            lastScrapersCache = data;
+            renderScrapersList(data);
+        } else {
+            showToast('Warning', data.message || 'Failed to load scrapers status', 'warning');
+        }
+    } catch (e) {
+        console.warn('Scraper status fetch error:', e);
+        showToast('Error', 'Network error fetching scraper telemetry', 'error');
+    }
+}
+window.loadScrapersStatus = loadScrapersStatus;
+
+function renderScrapersList(data) {
+    const movieGrid = document.getElementById('movieScrapersGrid');
+    const sportsGrid = document.getElementById('sportsScrapersGrid');
+    const statMovieCount = document.getElementById('statMovieScrapersCount');
+    const statSportsCount = document.getElementById('statSportsScrapersCount');
+    const statFancodeCount = document.getElementById('statFancodeLiveCount');
+
+    if (!movieGrid || !sportsGrid || !data.scrapers) return;
+
+    const movies = data.scrapers.movies || [];
+    const sports = data.scrapers.sports || [];
+
+    if (statMovieCount) statMovieCount.textContent = `${movies.length} Clusters`;
+    if (statSportsCount) statSportsCount.textContent = `${sports.length} Resolvers`;
+    if (statFancodeCount) statFancodeCount.textContent = `${data.counts?.fancodeLiveCount ?? 0} Ongoing`;
+
+    // Render Movie Scrapers
+    movieGrid.innerHTML = movies.map(srv => {
+        const isAphelion = srv.id === 's40';
+        const priorityBadge = isAphelion 
+            ? '<span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">#1 Priority</span>'
+            : `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-gray-800 text-gray-400">Priority ${srv.priority}</span>`;
+
+        return `
+            <div id="card-scraper-${srv.id}" class="p-4 rounded-2xl bg-gray-950 border ${isAphelion ? 'border-emerald-500/40 shadow-lg shadow-emerald-500/5' : 'border-gray-800/80'} hover:border-gray-700 transition-all flex flex-col justify-between space-y-3">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-2.5 h-2.5 rounded-full ${isAphelion ? 'bg-emerald-400 shadow-md shadow-emerald-400/50 animate-pulse' : 'bg-emerald-500'}"></div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
+                                <span>${escapeHtml(srv.name)}</span>
+                            </h4>
+                            <p class="text-[10px] text-gray-500 font-mono">Cluster ID: <span class="text-cyan-400 font-bold">${srv.id}</span> · Region: ${srv.region}</p>
+                        </div>
+                    </div>
+                    ${priorityBadge}
+                </div>
+
+                <div class="bg-black/50 p-2.5 rounded-xl border border-gray-800/60 flex items-center justify-between text-[11px]">
+                    <span class="text-gray-400 font-mono">${escapeHtml(srv.protocol)}</span>
+                    <span id="badge-lat-${srv.id}" class="text-[10px] font-mono px-2 py-0.5 rounded bg-gray-800/80 text-gray-300 font-bold">Ready</span>
+                </div>
+
+                <div class="text-[10px] text-gray-400 leading-tight">
+                    ${escapeHtml(srv.note || '')}
+                </div>
+
+                <div class="pt-1 flex items-center justify-between border-t border-gray-800/60">
+                    <span class="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                        <i data-lucide="check-circle" class="w-3 h-3 text-emerald-400"></i>
+                        <span>Active</span>
+                    </span>
+                    <button type="button" onclick="selectScraperForTest('${srv.id}', '${escapeJsString(srv.name)}')" class="px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600 border border-blue-500/30 text-blue-300 hover:text-white text-[10px] font-bold transition-all flex items-center gap-1">
+                        <i data-lucide="play" class="w-3 h-3"></i>
+                        <span>Test Cluster</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Render Sports Scrapers
+    sportsGrid.innerHTML = sports.map(sp => {
+        const isLive = sp.status === 'online';
+        const isFancode = sp.id === 'fancode';
+        const eventsBadge = sp.activeChannels !== undefined 
+            ? `<span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${isFancode ? 'bg-red-500/20 text-red-300 border border-red-500/30' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'}">${sp.activeChannels} Active</span>`
+            : '';
+
+        return `
+            <div id="card-scraper-${sp.id}" class="p-4 rounded-2xl bg-gray-950 border ${isFancode ? 'border-red-500/40 shadow-lg shadow-red-500/5' : 'border-gray-800/80'} hover:border-gray-700 transition-all flex flex-col justify-between space-y-3">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-2.5 h-2.5 rounded-full ${isLive ? 'bg-red-500 animate-pulse' : 'bg-yellow-500'}"></div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
+                                <span>${escapeHtml(sp.name)}</span>
+                            </h4>
+                            <p class="text-[10px] text-gray-500 font-mono">Engine: <span class="text-red-400 font-bold">${sp.id}</span> · Priority ${sp.priority}</p>
+                        </div>
+                    </div>
+                    ${eventsBadge}
+                </div>
+
+                <div class="bg-black/50 p-2.5 rounded-xl border border-gray-800/60 flex items-center justify-between text-[11px]">
+                    <span class="text-gray-400 font-mono">${escapeHtml(sp.protocol)}</span>
+                    <span id="badge-lat-${sp.id}" class="text-[10px] font-mono px-2 py-0.5 rounded bg-gray-800/80 text-gray-300 font-bold">Ready</span>
+                </div>
+
+                <div class="text-[10px] text-gray-400 leading-tight">
+                    ${escapeHtml(sp.note || '')}
+                </div>
+
+                <div class="pt-1 flex items-center justify-between border-t border-gray-800/60">
+                    <span class="text-[10px] ${isLive ? 'text-emerald-400' : 'text-yellow-400'} font-bold flex items-center gap-1">
+                        <i data-lucide="${isLive ? 'check-circle' : 'clock'}" class="w-3 h-3"></i>
+                        <span>${isLive ? 'Online / Auto-Update' : 'Standby'}</span>
+                    </span>
+                    <button type="button" onclick="selectScraperForTest('${sp.id}', '${escapeJsString(sp.name)}')" class="px-2.5 py-1 rounded-lg bg-red-600/20 hover:bg-red-600 border border-red-500/30 text-red-300 hover:text-white text-[10px] font-bold transition-all flex items-center gap-1">
+                        <i data-lucide="play" class="w-3 h-3"></i>
+                        <span>Test Stream</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    if (window.lucide) lucide.createIcons();
+}
+
+async function benchmarkAllScrapers() {
+    const btn = document.getElementById('btnBenchmarkAll');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Benchmarking All Clusters...</span>`;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    showToast('Benchmarking', 'Probing latencies across all movie clusters and live sports engines...', 'info');
+
+    try {
+        const res = await secureFetch('/api/admin/scrapers/benchmark-all', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+
+        if (res.ok && data.status === 'success' && data.results) {
+            data.results.forEach(r => {
+                const badge = document.getElementById(`badge-lat-${r.id}`);
+                if (badge) {
+                    badge.textContent = `${r.latencyMs}ms`;
+                    if (r.status === 'online' && r.latencyMs < 500) {
+                        badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30';
+                    } else if (r.status === 'online') {
+                        badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30';
+                    } else if (r.status === 'degraded') {
+                        badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-300 font-bold border border-yellow-500/30';
+                    } else {
+                        badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-red-500/20 text-red-300 font-bold border border-red-500/30';
+                    }
+                }
+            });
+            showToast('Benchmark Complete', `Benchmarked ${data.results.length} engines successfully.`, 'success');
+        } else {
+            showToast('Warning', data.message || 'Benchmark completed with warnings', 'warning');
+        }
+    } catch (e) {
+        showToast('Error', 'Failed to run full benchmark suite', 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="gauge" class="w-4 h-4"></i><span>Benchmark All Scrapers</span>`;
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+}
+window.benchmarkAllScrapers = benchmarkAllScrapers;
+
+function selectScraperForTest(scraperId, name) {
+    const sel = document.getElementById('testScraperId');
+    if (sel) {
+        sel.value = scraperId;
+    }
+    const formEl = document.getElementById('scraperTestForm');
+    if (formEl) {
+        formEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    showToast('Scraper Selected', `Target set to ${name} (${scraperId}). Click Execute to test.`, 'info');
+}
+window.selectScraperForTest = selectScraperForTest;
+
+function toggleTestSeasonFields() {
+    const mediaType = document.getElementById('testMediaType')?.value;
+    const tvBox = document.getElementById('testTvFields');
+    if (tvBox) {
+        if (mediaType === 'tv') tvBox.classList.remove('hidden');
+        else tvBox.classList.add('hidden');
+    }
+}
+window.toggleTestSeasonFields = toggleTestSeasonFields;
+
+async function executeScraperTest(event) {
+    if (event) event.preventDefault();
+
+    const scraperId = document.getElementById('testScraperId')?.value || 's40';
+    const mediaType = document.getElementById('testMediaType')?.value || 'movie';
+    const title = document.getElementById('testMediaTitle')?.value || 'The Matrix';
+    const tmdbId = document.getElementById('testTmdbId')?.value || 603;
+    const season = document.getElementById('testSeason')?.value || 1;
+    const episode = document.getElementById('testEpisode')?.value || 1;
+
+    const btn = document.getElementById('btnRunScraperTest');
+    const outBox = document.getElementById('scraperTestOutputBox');
+    const latBadge = document.getElementById('testLatencyBadge');
+    const detailsBox = document.getElementById('testResultDetails');
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Scraping Stream...</span>`;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    if (outBox) outBox.classList.remove('hidden');
+    if (detailsBox) detailsBox.innerHTML = `<p class="text-cyan-400 animate-pulse">Querying upstream cluster ${scraperId} for ${escapeHtml(title)}...</p>`;
+
+    try {
+        const res = await secureFetch('/api/admin/scrapers/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scraperId, mediaType, tmdbId, title, season, episode })
+        });
+        const data = await res.json();
+
+        if (latBadge) latBadge.textContent = `${data.latencyMs || 0}ms`;
+
+        if (res.ok && data.status === 'success') {
+            const audioCount = Array.isArray(data.audioTracks) ? data.audioTracks.length : 0;
+            const subCount = Array.isArray(data.subtitles) ? data.subtitles.length : 0;
+
+            if (detailsBox) {
+                detailsBox.innerHTML = `
+                    <div class="text-emerald-400 font-bold">✓ Success: Resolved valid playback manifest (${data.latencyMs}ms)</div>
+                    <div class="text-gray-300">Cluster: <span class="text-white font-bold">${escapeHtml(data.scraperId)}</span> · Quality: <span class="text-amber-300 font-bold">${escapeHtml(data.quality || '1080p')}</span></div>
+                    <div class="text-gray-400">Title: <span class="text-white">${escapeHtml(data.title || title)}</span></div>
+                    <div class="text-gray-400 truncate">Stream URL: <span class="text-cyan-400 select-all font-mono">${escapeHtml(data.streamUrl || '')}</span></div>
+                    ${audioCount > 0 ? `<div class="text-emerald-300">Audio Tracks: ${audioCount} detected</div>` : ''}
+                    ${subCount > 0 ? `<div class="text-indigo-300">Subtitles: ${subCount} available</div>` : ''}
+                `;
+            }
+
+            if (data.streamUrl) {
+                loadScraperPreviewStream(data.streamUrl, data.title || title, data.quality || '1080p');
+            }
+            showToast('Scraper Online', `Resolved ${escapeHtml(data.title || title)} in ${data.latencyMs}ms!`, 'success');
+        } else {
+            if (detailsBox) {
+                detailsBox.innerHTML = `
+                    <div class="text-rose-400 font-bold">✗ Cluster Response Failed (${data.latencyMs || 0}ms)</div>
+                    <div class="text-gray-400 mt-1">${escapeHtml(data.error || data.message || 'No stream returned')}</div>
+                `;
+            }
+            showToast('Warning', data.error || 'Scraper test returned no stream', 'warning');
+        }
+    } catch (err) {
+        if (detailsBox) {
+            detailsBox.innerHTML = `<div class="text-rose-400 font-bold">✗ Network exception: ${escapeHtml(err.message)}</div>`;
+        }
+        showToast('Error', 'Network error during scraper test', 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="play" class="w-4 h-4"></i><span>Execute Live Scrape Test</span>`;
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+}
+window.executeScraperTest = executeScraperTest;
+
+function loadScraperPreviewStream(url, title, quality) {
+    const video = document.getElementById('scraperPreviewVideo');
+    const placeholder = document.getElementById('previewPlaceholder');
+    const metaBox = document.getElementById('previewStreamMeta');
+    const titleEl = document.getElementById('previewStreamTitle');
+    const qualityEl = document.getElementById('previewQualityBadge');
+    const linkEl = document.getElementById('previewDirectLink');
+
+    if (!video || !url) return;
+
+    if (scraperPreviewHls) {
+        scraperPreviewHls.destroy();
+        scraperPreviewHls = null;
+    }
+
+    if (placeholder) placeholder.classList.add('hidden');
+    video.classList.remove('hidden');
+    if (metaBox) metaBox.classList.remove('hidden');
+    if (titleEl) titleEl.textContent = title || 'Active Stream';
+    if (qualityEl) {
+        qualityEl.textContent = quality || '1080p';
+        qualityEl.classList.remove('hidden');
+    }
+    if (linkEl) linkEl.href = url;
+
+    if (url.includes('.m3u8') && typeof Hls !== 'undefined' && Hls.isSupported()) {
+        scraperPreviewHls = new Hls({
+            capLevelToPlayerSize: false,
+            maxBufferLength: 10,
+            maxMaxBufferLength: 20
+        });
+        scraperPreviewHls.loadSource(url);
+        scraperPreviewHls.attachMedia(video);
+        scraperPreviewHls.on(Hls.Events.MANIFEST_PARSED, (ev, data) => {
+            if (data.levels && data.levels.length > 0) {
+                scraperPreviewHls.startLevel = data.levels.length - 1;
+            }
+            video.play().catch(() => {
+                video.muted = true;
+                video.play().catch(() => {});
+            });
+        });
+    } else {
+        video.src = url;
+        video.play().catch(() => {
+            video.muted = true;
+            video.play().catch(() => {});
+        });
+    }
+}
+window.loadScraperPreviewStream = loadScraperPreviewStream;
+
+// AI Hub Methods
+async function loadAiStatus() {
+    const badge = document.getElementById('aiEngineStatusBadge');
+    const statBadge = document.getElementById('statAiStatusBadge');
+
+    try {
+        const res = await secureFetch('/api/admin/ai/status');
+        const data = await res.json();
+
+        if (res.ok && data.status === 'success') {
+            const isGeminiActive = !!data.gemini?.configured;
+            if (badge) {
+                if (isGeminiActive) {
+                    badge.className = 'px-3 py-1 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 flex items-center gap-1.5';
+                    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span><span>Gemini 3.5 Active (${data.gemini.provider})</span>`;
+                } else {
+                    badge.className = 'px-3 py-1 rounded-xl text-xs font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20 flex items-center gap-1.5';
+                    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400"></span><span>Local AI Active (Configure GEMINI_API_KEY for Search)</span>`;
+                }
+            }
+            if (statBadge) {
+                statBadge.textContent = isGeminiActive ? 'Online' : 'Local Mode';
+            }
+        }
+    } catch (e) {
+        console.warn('AI status load error:', e);
+    }
+}
+window.loadAiStatus = loadAiStatus;
+
+function setAiTestMode(mode) {
+    currentAiTestMode = mode;
+    const btnAssistant = document.getElementById('btnAiModeAssistant');
+    const btnShowcase = document.getElementById('btnAiModeShowcase');
+
+    if (mode === 'assistant') {
+        if (btnAssistant) btnAssistant.className = 'py-2.5 px-3 rounded-xl text-xs font-bold bg-indigo-600 text-white transition-all';
+        if (btnShowcase) btnShowcase.className = 'py-2.5 px-3 rounded-xl text-xs font-bold bg-gray-900 border border-gray-800 text-gray-400 transition-all';
+    } else {
+        if (btnShowcase) btnShowcase.className = 'py-2.5 px-3 rounded-xl text-xs font-bold bg-purple-600 text-white transition-all';
+        if (btnAssistant) btnAssistant.className = 'py-2.5 px-3 rounded-xl text-xs font-bold bg-gray-900 border border-gray-800 text-gray-400 transition-all';
+    }
+}
+window.setAiTestMode = setAiTestMode;
+
+function fillAiPrompt(text) {
+    const input = document.getElementById('aiPromptInput');
+    if (input) {
+        input.value = text;
+        input.focus();
+    }
+}
+window.fillAiPrompt = fillAiPrompt;
+
+async function runAiTest() {
+    const promptInput = document.getElementById('aiPromptInput');
+    const prompt = promptInput?.value?.trim();
+    if (!prompt) return;
+
+    const btn = document.getElementById('btnExecuteAiPrompt');
+    const feed = document.getElementById('aiResponseFeed');
+    const latBadge = document.getElementById('aiLatencyBadge');
+    const metaBox = document.getElementById('aiGroundingMetadata');
+    const queriesList = document.getElementById('aiSearchQueriesList');
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Querying AI Engine & Grounding...</span>`;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    if (feed) {
+        feed.innerHTML = `<p class="text-indigo-400 animate-pulse font-mono">Synthesizing live response with Google Web Search Grounding...</p>`;
+    }
+    if (latBadge) latBadge.textContent = 'Executing...';
+    if (metaBox) metaBox.classList.add('hidden');
+
+    try {
+        const res = await secureFetch('/api/admin/ai/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, mode: currentAiTestMode })
+        });
+        const data = await res.json();
+
+        if (latBadge) latBadge.textContent = `${data.latencyMs || 0}ms`;
+
+        if (res.ok && data.status === 'success') {
+            if (currentAiTestMode === 'showcase' && data.result) {
+                const r = data.result;
+                feed.innerHTML = `
+                    <div class="space-y-2 bg-gray-900/60 p-3 rounded-xl border border-gray-800">
+                        <div class="flex items-center justify-between">
+                            <span class="text-white font-extrabold text-sm">${escapeHtml(r.title)}</span>
+                            <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 uppercase">${escapeHtml(r.badge)}</span>
+                        </div>
+                        <p class="text-gray-300 text-xs">${escapeHtml(r.subtitle)}</p>
+                        <div class="flex items-center gap-2 pt-1">
+                            <span class="text-[10px] text-gray-500">Layout: <b class="text-white font-mono">${r.gridStyle}</b></span>
+                            <span class="text-[10px] text-gray-500">Keywords: <b class="text-cyan-400">${(r.keywords || []).join(', ')}</b></span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Assistant response
+                feed.innerHTML = `
+                    <div class="whitespace-pre-line text-gray-200 leading-relaxed text-xs">
+                        ${escapeHtml(data.answer || 'No response')}
+                    </div>
+                `;
+            }
+
+            // Web search grounding metadata
+            if (data.webSearchQueries && data.webSearchQueries.length > 0 && metaBox && queriesList) {
+                metaBox.classList.remove('hidden');
+                queriesList.innerHTML = data.webSearchQueries.map(q => `
+                    <span class="px-2 py-0.5 rounded-md bg-gray-900 text-indigo-300 border border-gray-800 text-[10px] font-mono">${escapeHtml(q)}</span>
+                `).join('');
+            }
+
+            showToast('AI Query Complete', `Response received in ${data.latencyMs}ms`, 'success');
+        } else {
+            if (feed) feed.innerHTML = `<p class="text-rose-400 font-bold">Failed: ${escapeHtml(data.message || 'Execution error')}</p>`;
+            showToast('Warning', data.message || 'AI request failed', 'warning');
+        }
+    } catch (e) {
+        if (feed) feed.innerHTML = `<p class="text-rose-400 font-bold">Network exception: ${escapeHtml(e.message)}</p>`;
+        showToast('Error', 'Network error querying AI engine', 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i><span>Execute AI Query with Grounding</span>`;
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+}
+window.runAiTest = runAiTest;
+
 
 

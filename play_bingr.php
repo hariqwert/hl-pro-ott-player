@@ -1600,9 +1600,10 @@ $malId = isset($_GET['malId']) ? $_GET['malId'] : (isset($_GET['mal_id']) ? $_GE
 
             if (Hls.isSupported()) {
                 hlsInstance = new Hls({
-                    capLevelToPlayerSize: true,
-                    maxBufferLength: 30,
-                    maxMaxBufferLength: 60,
+                    capLevelToPlayerSize: false,
+                    maxBufferLength: 10,
+                    maxMaxBufferLength: 20,
+                    backBufferLength: 10,
                     enableWorker: true,
                     lowLatencyMode: true,
                     startPosition: targetSeekTime > 0 ? targetSeekTime : -1
@@ -1613,6 +1614,12 @@ $malId = isset($_GET['malId']) ? $_GET['malId'] : (isset($_GET['mal_id']) ? $_GE
 
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
                     showLoading(false);
+                    // Default to best quality level (4K / 1080p FHD)
+                    if (data.levels && data.levels.length > 0) {
+                        const topLevel = data.levels.length - 1;
+                        hlsInstance.startLevel = topLevel;
+                        hlsInstance.nextLevel = topLevel;
+                    }
                     populateQualityLevels(data.levels);
                     detectAndPopulateAudioTracks();
                     detectAndPopulateSubtitleTracks();
@@ -1969,6 +1976,16 @@ $malId = isset($_GET['malId']) ? $_GET['malId'] : (isset($_GET['mal_id']) ? $_GE
             if (hlsInstance && hlsInstance.audioTracks && hlsInstance.audioTracks.length > trackIdx) {
                 try {
                     hlsInstance.audioTrack = trackIdx;
+                    // Instant audio buffer flush & resync
+                    const cur = mainVideo.currentTime;
+                    if (mainVideo && !mainVideo.paused && cur > 0) {
+                        setTimeout(() => {
+                            try {
+                                if (mainVideo.fastSeek) mainVideo.fastSeek(cur);
+                                else mainVideo.currentTime = cur;
+                            } catch(e) {}
+                        }, 50);
+                    }
                 } catch (e) {
                     console.warn('HLS audio switch notice:', e);
                 }
