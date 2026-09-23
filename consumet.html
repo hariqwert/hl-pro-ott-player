@@ -5935,6 +5935,11 @@ async function loadLiveSportsSchedule(force = false) {
         if (jtvEventsRes.status === 'fulfilled' && Array.isArray(jtvEventsRes.value)) {
             const existingUrls = new Set(allEvents.map(e => (e.id || '') + ' ' + (e.title || '')));
             jtvEventsRes.value.forEach((ev, idx) => {
+                if (!ev || !ev.stream_url || (!ev.stream_url.startsWith('http://') && !ev.stream_url.startsWith('https://'))) return;
+                // Skip Widevine MPD events without ClearKey credentials (cannot be decoded in browser)
+                if (ev.stream_url.includes('.mpd') && !ev.clearkey && (!ev.key_id || ev.key_id === 'null' || (ev.key_id + '').length < 16)) {
+                    return;
+                }
                 const evKey = ev.id || `jtv_ev_${idx}`;
                 if (!existingUrls.has(evKey) && !existingUrls.has(ev.name)) {
                     let pUrl = '';
@@ -6186,8 +6191,25 @@ async function loadLiveSportsSchedule(force = false) {
             addedBadge.innerText = addedChannelsCount;
         }
 
-        // Automatically exclude any ended matches or highlights
-        window.liveNowEvents = allEvents.filter(e => !isSportEventEnded(e));
+        // Automatically exclude ended matches, dummy unplayable fixtures, and events without streams
+        window.liveNowEvents = allEvents.filter(e => {
+            if (!e || isSportEventEnded(e)) return false;
+            // Check for valid stream URLs
+            const hasDirectPlayUrl = !!(e.primaryPlayUrl && e.primaryPlayUrl !== '#' && !e.primaryPlayUrl.includes('undefined'));
+            const hasM3u8Url = !!(e.primaryM3u8Url && (e.primaryM3u8Url.startsWith('http') || e.primaryM3u8Url.startsWith('/')));
+            const hasChannelStream = Array.isArray(e.channels) && e.channels.some(c => c && (c.playUrl || c.m3u8Url || c.userChannelUrl) && c.userHasChannel !== false);
+            const hasConvertedStream = Array.isArray(e.myConvertedChannels) && e.myConvertedChannels.some(c => c && (c.playUrl || c.m3u8Url || c.url));
+            
+            // Exclude fixtures that have no broadcast available
+            if (e.canWatch === false && !hasDirectPlayUrl && !hasChannelStream && !hasConvertedStream) {
+                return false;
+            }
+            if (e.primaryChannelName === 'No Broadcast Available' && !hasChannelStream && !hasConvertedStream) {
+                return false;
+            }
+            
+            return hasDirectPlayUrl || hasM3u8Url || hasChannelStream || hasConvertedStream;
+        });
         const liveCount = window.liveNowEvents.filter(e => e.isLive).length;
         const liveBadgeText = document.getElementById('liveNowLiveCountText');
         if (liveBadgeText) {
