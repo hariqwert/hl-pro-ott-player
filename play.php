@@ -1450,13 +1450,17 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
 
                 const urlParams = new URLSearchParams(window.location.search);
                 let resolvedSrc = src;
-                let drmKeyId = urlParams.get('key_id') || urlParams.get('keyid') || '';
-                let drmKey = urlParams.get('key') || '';
+                let drmKeyId = (urlParams.get('key_id') || urlParams.get('keyid') || '').trim();
+                let drmKey = (urlParams.get('key') || '').trim();
                 const clearkeyParam = urlParams.get('clearkey');
                 if (clearkeyParam && clearkeyParam.includes(':') && (!drmKeyId || !drmKey)) {
                     const ckParts = clearkeyParam.split(':');
-                    drmKeyId = ckParts[0].trim();
-                    drmKey = ckParts[1].trim();
+                    const pId = (ckParts[0] || '').trim().replace(/[^0-9a-fA-F]/g, '');
+                    const pKey = (ckParts[1] || '').trim().replace(/[^0-9a-fA-F]/g, '');
+                    if (pId.length === 32 && pKey.length === 32) {
+                        drmKeyId = pId;
+                        drmKey = pKey;
+                    }
                 }
                 const channelIdParam = (urlParams.get('channel_id') || '').toLowerCase();
                 const eventIdParam = (urlParams.get('event_id') || '').toLowerCase();
@@ -1479,10 +1483,24 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                                     resolvedSrc = src;
                                 }
                                 if (ev.key_id && ev.key) {
-                                    drmKeyId = ev.key_id.trim();
-                                    drmKey = ev.key.trim();
-                                    window._activeClearKeyId = drmKeyId;
-                                    window._activeClearKey = drmKey;
+                                    const cId = (ev.key_id + '').trim().replace(/[^0-9a-fA-F]/g, '');
+                                    const cKey = (ev.key + '').trim().replace(/[^0-9a-fA-F]/g, '');
+                                    if (cId.length === 32 && cKey.length === 32) {
+                                        drmKeyId = cId;
+                                        drmKey = cKey;
+                                        window._activeClearKeyId = drmKeyId;
+                                        window._activeClearKey = drmKey;
+                                    } else {
+                                        drmKeyId = '';
+                                        drmKey = '';
+                                        window._activeClearKeyId = '';
+                                        window._activeClearKey = '';
+                                    }
+                                } else {
+                                    drmKeyId = '';
+                                    drmKey = '';
+                                    window._activeClearKeyId = '';
+                                    window._activeClearKey = '';
                                 }
                                 if (ev.name) {
                                     name = ev.name;
@@ -1520,14 +1538,29 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                                         resolvedSrc = src;
                                     } else {
                                         // DASH ClearKey stream (JioTV)
-                                        src = ch.manifest_url || `/api/jtv/manifest/${ch.id}.mpd` || ch.full_stream_url || ch.stream_url;
+                                        // Prefer direct CDN URL to avoid GCP datacenter IP blocks (HTTP 451)
+                                        src = ch.full_stream_url || ch.manifest_url || `/api/jtv/manifest/${ch.id}.mpd` || ch.stream_url;
                                         resolvedSrc = src;
                                         if (ch.token) window._activeAkamaiToken = ch.token;
                                         if (ch.key_id && ch.key) {
-                                            drmKeyId = ch.key_id.trim();
-                                            drmKey = ch.key.trim();
-                                            window._activeClearKeyId = drmKeyId;
-                                            window._activeClearKey = drmKey;
+                                            const cId = (ch.key_id + '').trim().replace(/[^0-9a-fA-F]/g, '');
+                                            const cKey = (ch.key + '').trim().replace(/[^0-9a-fA-F]/g, '');
+                                            if (cId.length === 32 && cKey.length === 32) {
+                                                drmKeyId = cId;
+                                                drmKey = cKey;
+                                                window._activeClearKeyId = drmKeyId;
+                                                window._activeClearKey = drmKey;
+                                            } else {
+                                                drmKeyId = '';
+                                                drmKey = '';
+                                                window._activeClearKeyId = '';
+                                                window._activeClearKey = '';
+                                            }
+                                        } else {
+                                            drmKeyId = '';
+                                            drmKey = '';
+                                            window._activeClearKeyId = '';
+                                            window._activeClearKey = '';
                                         }
                                     }
                                     if (ch.name && (!name || name === 'Live Stream' || name === 'Live Channel')) {
@@ -2027,12 +2060,13 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                         shakaPlayer = new shaka.Player(video);
                         window.shakaPlayer = shakaPlayer;
 
-                        // Configure ClearKey DRM if keys are available
-                        const effectiveKeyId = (keyId || drmKeyId || window._activeClearKeyId || urlParamsForMedia.get('key_id') || '').trim();
-                        const effectiveKey = (key || drmKey || window._activeClearKey || urlParamsForMedia.get('key') || '').trim();
-                        if (effectiveKeyId && effectiveKey) {
-                            const cleanKeyId = effectiveKeyId.toLowerCase().replace(/[^0-9a-f]/g, '');
-                            const cleanKey = effectiveKey.toLowerCase().replace(/[^0-9a-f]/g, '');
+                        // Configure ClearKey DRM ONLY IF valid 32-character hex keys are available
+                        const rawKeyId = (keyId || drmKeyId || window._activeClearKeyId || (typeof urlParamsForMedia !== 'undefined' ? urlParamsForMedia.get('key_id') : '') || '').trim();
+                        const rawKey = (key || drmKey || window._activeClearKey || (typeof urlParamsForMedia !== 'undefined' ? urlParamsForMedia.get('key') : '') || '').trim();
+                        const cleanKeyId = rawKeyId.toLowerCase().replace(/[^0-9a-f]/g, '');
+                        const cleanKey = rawKey.toLowerCase().replace(/[^0-9a-f]/g, '');
+
+                        if (cleanKeyId.length === 32 && cleanKey.length === 32) {
                             shakaPlayer.configure({
                                 drm: {
                                     clearKeys: {
@@ -2041,6 +2075,16 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                                 }
                             });
                             console.log("[Shaka Engine] Configured ClearKey DRM:", cleanKeyId);
+                        } else {
+                            // Explicitly clear DRM so unencrypted / clear streams play without 6006 EME session errors
+                            shakaPlayer.configure({
+                                drm: {
+                                    clearKeys: {}
+                                }
+                            });
+                            if (cleanKeyId || cleanKey) {
+                                console.warn("[Shaka Engine] Ignored invalid ClearKey DRM keys (both must be 32 hex chars):", cleanKeyId, cleanKey);
+                            }
                         }
 
                         // Configure Request Filter for Akamai token injection on chunks
@@ -2127,18 +2171,21 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                             });
                         }
 
-                        // Configure ClearKey DRM if keys are available
-                        const effectiveKeyId = (keyId || drmKeyId || window._activeClearKeyId || urlParamsForMedia.get('key_id') || '').trim();
-                        const effectiveKey = (key || drmKey || window._activeClearKey || urlParamsForMedia.get('key') || '').trim();
-                        if (effectiveKeyId && effectiveKey) {
-                            console.log("[DASH Engine] Configuring ClearKey DRM protection:", effectiveKeyId);
-                            const b64KeyId = hexToBase64Url(effectiveKeyId);
-                            const b64Key = hexToBase64Url(effectiveKey);
+                        // Configure ClearKey DRM ONLY IF valid 32-character hex keys are available
+                        const rawDashKeyId = (keyId || drmKeyId || window._activeClearKeyId || (typeof urlParamsForMedia !== 'undefined' ? urlParamsForMedia.get('key_id') : '') || '').trim();
+                        const rawDashKey = (key || drmKey || window._activeClearKey || (typeof urlParamsForMedia !== 'undefined' ? urlParamsForMedia.get('key') : '') || '').trim();
+                        const cleanDashKeyId = rawDashKeyId.toLowerCase().replace(/[^0-9a-f]/g, '');
+                        const cleanDashKey = rawDashKey.toLowerCase().replace(/[^0-9a-f]/g, '');
+
+                        if (cleanDashKeyId.length === 32 && cleanDashKey.length === 32) {
+                            console.log("[DASH Engine] Configuring ClearKey DRM protection:", cleanDashKeyId);
+                            const b64KeyId = hexToBase64Url(cleanDashKeyId);
+                            const b64Key = hexToBase64Url(cleanDashKey);
                             const clearkeys = {};
                             if (b64KeyId && b64Key) {
                                 clearkeys[b64KeyId] = b64Key;
                             }
-                            clearkeys[effectiveKeyId.toLowerCase()] = effectiveKey.toLowerCase();
+                            clearkeys[cleanDashKeyId] = cleanDashKey;
                             dashPlayer.setProtectionData({
                                 "org.w3.clearkey": {
                                     "clearkeys": clearkeys
