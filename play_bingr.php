@@ -1399,15 +1399,15 @@ $malId = isset($_GET['malId']) ? $_GET['malId'] : (isset($_GET['mal_id']) ? $_GE
         let externalSubtitlesLoaded = [];
 
         const DEFAULT_SERVERS = [
+            { id: 's61', name: 'Corvus (Multi-Source Hub)', cc: 'US' },
             { id: 's40', name: 'Aphelion (DarkMatter / Fast 1080p Direct)', cc: 'GL' },
             { id: 's62', name: 'Bastion (Multi-Audio HLS / KNOCW / NXOCW)', cc: 'IN' },
+            { id: 's31', name: 'Orion (Filmu Workers)', cc: 'US' },
             { id: 'm4u', name: 'Movie 4U (Movies4u / Acek CDN 1080p)', cc: 'IN' },
-            { id: 's61', name: 'Corvus (Multi-Audio Mirror Cluster)', cc: 'US' },
             { id: 'animesalt', name: 'AnimeSalt (Special Anime Scraper / Multi-Audio HLS)', cc: 'JP' },
             { id: 's3',  name: 'Edmunds (Filmu Proxy)', cc: 'US' },
             { id: 's70', name: 'Polaris (Multi-Language Dubs / HLS v7)', cc: 'US' },
             { id: 's30', name: 'Nova (VidRock CDN)', cc: 'US' },
-            { id: 's31', name: 'Orion (Filmu Workers)', cc: 'US' },
             { id: 's4k', name: 'PeakStream 4K (SpeedRace 4K UHD Master)', cc: 'US' },
             { id: 's60', name: 'Vertex (Mirror Cluster)', cc: 'US' }
         ];
@@ -1510,7 +1510,7 @@ $malId = isset($_GET['malId']) ? $_GET['malId'] : (isset($_GET['mal_id']) ? $_GE
 
                 const streamUrl = data.primaryM3u8 || (data.sources && data.sources.length > 0 ? data.sources[0].url : null);
                 if (streamUrl) {
-                    CURRENT_SERVER = serverId;
+                    CURRENT_SERVER = data.serverId || serverId;
                     updateServerListUI();
                     window.bingrSources = data.sources || [];
                     window.bingrActiveStreamUrl = streamUrl;
@@ -1520,7 +1520,7 @@ $malId = isset($_GET['malId']) ? $_GET['malId'] : (isset($_GET['mal_id']) ? $_GE
                         populateSubtitlesList();
                     }
                     if (isManual) {
-                        showToast(`Connected to ${getServerName(serverId)}`);
+                        showToast(`Connected to ${getServerName(CURRENT_SERVER)}`);
                     }
                 } else {
                     console.warn('Server ' + serverId + ' returned no stream.');
@@ -1550,7 +1550,7 @@ $malId = isset($_GET['malId']) ? $_GET['malId'] : (isset($_GET['mal_id']) ? $_GE
 
         function cascadeFallback(failedServerId) {
             failedServers.add(failedServerId);
-            const fallbackOrder = ['s40', 's62', 'm4u', 's61', 'animesalt', 's3', 's70', 's30', 's4k', 's31', 's60'];
+            const fallbackOrder = ['s61', 's40', 's62', 's31', 'm4u', 's3', 's70', 's30', 's4k', 's60', 'animesalt'];
             const nextServer = fallbackOrder.find(srv => !failedServers.has(srv));
             if (nextServer) {
                 fetchAndPlayStream(nextServer, false);
@@ -1573,8 +1573,26 @@ $malId = isset($_GET['malId']) ? $_GET['malId'] : (isset($_GET['mal_id']) ? $_GE
             let effectiveUrl = streamUrl;
             const lowerUrl = streamUrl.toLowerCase();
             if (effectiveUrl.startsWith('http://') || effectiveUrl.startsWith('https://')) {
-                if (lowerUrl.includes('acek-cdn') || lowerUrl.includes('morencius') || lowerUrl.includes('vidhide') || lowerUrl.includes('streamhide') || lowerUrl.includes('m4uplay') || lowerUrl.includes('filelions') || lowerUrl.includes('dramiyos')) {
-                    effectiveUrl = '/live.php?url=' + encodeURIComponent(streamUrl);
+                if (
+                    lowerUrl.includes('workers.dev') ||
+                    lowerUrl.includes('goldenfirewanderer') ||
+                    lowerUrl.includes('vidrock') ||
+                    lowerUrl.includes('knocw') ||
+                    lowerUrl.includes('nxocw') ||
+                    lowerUrl.includes('flocw') ||
+                    lowerUrl.includes('mwocx') ||
+                    lowerUrl.includes('acek-cdn') ||
+                    lowerUrl.includes('morencius') ||
+                    lowerUrl.includes('vidhide') ||
+                    lowerUrl.includes('streamhide') ||
+                    lowerUrl.includes('m4uplay') ||
+                    lowerUrl.includes('filelions') ||
+                    lowerUrl.includes('dramiyos') ||
+                    lowerUrl.includes('quietridge') ||
+                    lowerUrl.includes('wormhole') ||
+                    lowerUrl.includes('onlinevisibilitysystem')
+                ) {
+                    effectiveUrl = '/api/proxy/hls?url=' + encodeURIComponent(streamUrl);
                     console.log('[HLS] Automatically routed stream through reverse proxy for CORS compliance:', effectiveUrl);
                 }
             }

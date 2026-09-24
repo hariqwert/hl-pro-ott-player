@@ -15,14 +15,14 @@ export interface BingrServerCluster {
 }
 
 export const BINGR_SERVERS: BingrServerCluster[] = [
-    { id: 's40', name: 'Aphelion (DarkMatter / Fast 1080p Direct)', cc: 'GL', priority: 1 },
-    { id: 's62', name: 'Bastion (Multi-Audio HLS / KNOCW / NXOCW)', cc: 'IN', priority: 2 },
-    { id: 'm4u', name: 'Movie 4U (Movies4u / Acek CDN)', cc: 'IN', priority: 3 },
-    { id: 's61', name: 'Corvus (Multi-Source Hub)', cc: 'US', priority: 4 },
-    { id: 'animesalt', name: 'AnimeSalt (Special Anime Scraper / Multi-Audio HLS)', cc: 'JP', priority: 5 },
-    { id: 's3',  name: 'Edmunds (Filmu Proxy)', cc: 'US', priority: 6 },
-    { id: 's70', name: 'Polaris (Multi-Language Dubs / HLS v7)', cc: 'US', priority: 7 },
-    { id: 's31', name: 'Orion (Filmu Workers)', cc: 'US', priority: 8 },
+    { id: 's61', name: 'Corvus (Multi-Source Hub)', cc: 'US', priority: 1 },
+    { id: 's40', name: 'Aphelion (DarkMatter / Fast 1080p Direct)', cc: 'GL', priority: 2 },
+    { id: 's62', name: 'Bastion (Multi-Audio HLS / KNOCW / NXOCW)', cc: 'IN', priority: 3 },
+    { id: 's31', name: 'Orion (Filmu Workers)', cc: 'US', priority: 4 },
+    { id: 'm4u', name: 'Movie 4U (Movies4u / Acek CDN)', cc: 'IN', priority: 5 },
+    { id: 'animesalt', name: 'AnimeSalt (Special Anime Scraper / Multi-Audio HLS)', cc: 'JP', priority: 6 },
+    { id: 's3',  name: 'Edmunds (Filmu Proxy)', cc: 'US', priority: 7 },
+    { id: 's70', name: 'Polaris (Multi-Language Dubs / HLS v7)', cc: 'US', priority: 8 },
     { id: 's30', name: 'Nova (VidRock CDN)', cc: 'US', priority: 9 },
     { id: 's4k', name: 'PeakStream 4K', cc: 'GL', priority: 10 },
     { id: 's60', name: 'Vertex', cc: 'US', priority: 11 }
@@ -79,9 +79,9 @@ export async function verifyStreamReachable(url: string, timeoutMs: number = 250
         return false;
     }
 
-    // Fast-path instant bypass for known ultra-reliable CDN & Cloudflare Worker edge domains
+    // Fast-path instant bypass for known ultra-reliable CDN edge domains (workers.dev probed to catch 429 rate limits)
     if (
-        lowerUrl.includes('workers.dev') ||
+        lowerUrl.includes('bxcnm.com') ||
         lowerUrl.includes('knocw.com') ||
         lowerUrl.includes('nxocw.com') ||
         lowerUrl.includes('flocw.com') ||
@@ -1032,7 +1032,7 @@ export async function scrapeBingrStream(params: {
                     }>(`/stream/aphelion-tv/${tmdbId}/${s}/${e}`, {
                         method: 'GET',
                         referer: `https://bingr.one/watch/tv/${tmdbId}/${s}/${e}`,
-                        timeout: 3500
+                        timeout: 7000
                     });
                     if (tvRes.status === 200 && tvRes.data?.sources && tvRes.data.sources.length > 0) {
                         scraperName = 'Aphelion';
@@ -1056,7 +1056,7 @@ export async function scrapeBingrStream(params: {
                         method: 'POST',
                         body: payload,
                         referer: `https://bingr.one/watch/tv/${tmdbId}/${s}/${e}`,
-                        timeout: 3500
+                        timeout: 7000
                     });
                     if (res.status === 200) {
                         scraperName = res.data?.scraperName || 'Aphelion';
@@ -1083,7 +1083,7 @@ export async function scrapeBingrStream(params: {
                     method: 'POST',
                     body: payload,
                     referer,
-                    timeout: 3500
+                    timeout: 7000
                 });
 
                 if (res.status !== 200) throw new Error(`Upstream returned status ${res.status}`);
@@ -1095,6 +1095,20 @@ export async function scrapeBingrStream(params: {
             const latencyMs = Date.now() - startTime;
 
             if (sources && sources.length > 0) {
+                // Auto-unwrap Cloudflare Worker wrappers to proxied direct HLS URLs to prevent Cloudflare 429 quota errors
+                for (const s of sources) {
+                    if (s.url && s.url.includes('workers.dev') && s.url.includes('?url=')) {
+                        try {
+                            const wUrl = new URL(s.url);
+                            const innerUrl = wUrl.searchParams.get('url');
+                            const innerHeaders = wUrl.searchParams.get('headers');
+                            if (innerUrl) {
+                                s.url = `/api/proxy/hls?url=${encodeURIComponent(innerUrl)}${innerHeaders ? `&headers=${encodeURIComponent(innerHeaders)}` : ''}`;
+                            }
+                        } catch {}
+                    }
+                }
+
                 // Always prioritize highest resolution quality: 4K / 2160p > 1080p > 720p > 480p
                 sources.sort((a, b) => {
                     const qScore = (q: string = '') => {
@@ -1260,15 +1274,19 @@ export async function scrapeBingrStream(params: {
         successResult = await tryServer('animesalt');
     }
 
-    // PRIORITY #1: Aphelion (s40) - Fast Direct 1080p Stream (~350ms resolution).
-    // Try s40 FIRST and return immediately if resolved!
+    // PRIORITY #1: Corvus (s61) - Multi-Source Hub (~6 direct playable streams)
+    if (!successResult && !isAnimeLikely) {
+        successResult = await tryServer('s61');
+    }
+
+    // PRIORITY #2: Aphelion (s40) - Fast Direct 1080p Stream (~350ms resolution).
     if (!successResult && !isAnimeLikely) {
         successResult = await tryServer('s40');
     }
 
     if (!successResult) {
-        // TIER 1: High-Speed Multi-Audio Race (s62 Bastion, s61 Corvus; plus animesalt/s40 if not yet tried)
-        const tier1Servers = isAnimeLikely ? ['animesalt', 's40', 's62'] : ['s62', 's61'];
+        // TIER 1: High-Speed Multi-Audio Race (s62 Bastion, s31 Orion; plus animesalt/s40 if not yet tried)
+        const tier1Servers = isAnimeLikely ? ['animesalt', 's61', 's40', 's62'] : ['s62', 's31'];
         const tier1Promises = tier1Servers.map(srv => tryServer(srv));
         const tier1Results = await Promise.allSettled(tier1Promises);
         for (const res of tier1Results) {
@@ -1280,8 +1298,8 @@ export async function scrapeBingrStream(params: {
     }
 
     if (!successResult) {
-        // TIER 2: Extended Fallback Clusters (Movie4U, Edmunds s3, Polaris s70, Nova s30, Orion s31, PeakStream s4k, Vertex s60)
-        const tier2Servers = ['m4u', 's3', 's70', 's30', 's31', 's4k', 's60', 'animesalt'];
+        // TIER 2: Extended Fallback Clusters (Movie4U, Edmunds s3, Polaris s70, Nova s30, PeakStream s4k, Vertex s60)
+        const tier2Servers = ['m4u', 's3', 's70', 's30', 's4k', 's60', 'animesalt'];
         const tier2Promises = tier2Servers.map(srv => tryServer(srv));
         const tier2Results = await Promise.allSettled(tier2Promises);
         for (const res of tier2Results) {

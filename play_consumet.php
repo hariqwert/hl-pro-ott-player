@@ -790,9 +790,20 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
             let name = "<?php echo htmlspecialchars($name); ?>";
             let source = "<?php echo htmlspecialchars($source); ?>";
             const urlParams = new URLSearchParams(window.location.search);
+            function ensureProxiedSportsUrl(u) {
+                if (!u || u.startsWith('/api/proxy/')) return u;
+                const lower = u.toLowerCase();
+                if (lower.includes('fancode.com') || lower.includes('in-mc-flive') || lower.includes('in-ak-flive') || 
+                    lower.includes('sonydaimenew') || lower.includes('sonymtmnew') || lower.includes('akamaized.net') || 
+                    lower.includes('sonyliv') || lower.includes('slivcdn') || lower.includes('dai-fancode') || lower.includes('dishmt')) {
+                    return `/api/proxy/fancode?url=${encodeURIComponent(u)}`;
+                }
+                return u;
+            }
             if (!src) {
                 src = urlParams.get('url') || urlParams.get('id') || urlParams.get('stream') || '';
             }
+            src = ensureProxiedSportsUrl(src);
             if (!name || name === 'Live Stream' || name === 'Live Channel') {
                 name = urlParams.get('name') || urlParams.get('title') || name;
             }
@@ -2205,7 +2216,8 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                 }, 15000);
 
                 const urlParams = new URLSearchParams(window.location.search);
-                let resolvedSrc = src;
+                let resolvedSrc = ensureProxiedSportsUrl(src);
+                src = resolvedSrc;
                 let drmKeyId = (urlParams.get('key_id') || urlParams.get('keyid') || '').trim();
                 let drmKey = (urlParams.get('key') || '').trim();
                 const clearkeyParam = urlParams.get('clearkey');
@@ -2222,7 +2234,7 @@ $source = isset($_GET['source']) ? $_GET['source'] : 'consumet.html';
                 const eventIdParam = (urlParams.get('event_id') || '').toLowerCase();
 
                 // Check for live sporting event
-                const isEvent = eventIdParam || channelIdParam.startsWith('live-event-') || channelIdParam.startsWith('cric-event-') || channelIdParam.startsWith('fancode-') || channelIdParam.startsWith('prime-');
+                const isEvent = eventIdParam || channelIdParam.startsWith('live-event-') || channelIdParam.startsWith('cric-event-') || channelIdParam.startsWith('fancode-') || channelIdParam.startsWith('prime-') || channelIdParam.startsWith('sonyliv-');
                 if (isEvent) {
                     const eventId = eventIdParam || channelIdParam;
                     try {

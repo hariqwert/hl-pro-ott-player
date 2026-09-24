@@ -6825,6 +6825,28 @@ function getUpstreamProxyHeaders(targetUrlStr: string, clientIp?: string): Recor
     if (og) headers['Origin'] = og;
     if (ck) headers['Cookie'] = ck;
 
+    const rawHeadersParam = q.get('headers');
+    if (rawHeadersParam) {
+        try {
+            const parsed = JSON.parse(rawHeadersParam);
+            for (const [k, v] of Object.entries(parsed)) {
+                if (typeof v === 'string') headers[k] = v;
+            }
+        } catch {}
+    }
+
+    if (u.hostname.includes('goldenfirewanderer') || u.hostname.includes('vidrock')) {
+        headers['User-Agent'] = headers['User-Agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+        headers['Referer'] = headers['Referer'] || 'https://vidrock.ru/';
+        headers['Origin'] = headers['Origin'] || 'https://vidrock.ru';
+    }
+
+    if (u.hostname.includes('bxcnm.com') || u.hostname.includes('knocw') || u.hostname.includes('nxocw') || u.hostname.includes('flocw') || u.hostname.includes('mwocx')) {
+        headers['User-Agent'] = headers['User-Agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+        headers['Referer'] = headers['Referer'] || 'https://bingr.one/';
+        headers['Origin'] = headers['Origin'] || 'https://bingr.one';
+    }
+
     // Resolve client residential IP for Akamai CDN geo-location bypass (especially on Google Cloud Run)
     const rawIp = (clientIp || '').split(',')[0].trim();
     const isCloudOrPrivate = !rawIp || 
@@ -6917,6 +6939,15 @@ app.all(['/api/proxy/fancode', '/api/proxy/hls', '/proxy'], async (req: Request,
     let targetUrl: URL;
     try {
         targetUrl = new URL(cleanTarget);
+        if (targetUrl.hostname.includes('workers.dev') && targetUrl.searchParams.has('url')) {
+            const inner = targetUrl.searchParams.get('url')!;
+            const rawHeaders = targetUrl.searchParams.get('headers');
+            let unwrapUrl = inner;
+            if (rawHeaders) {
+                unwrapUrl += (unwrapUrl.includes('?') ? '&' : '?') + 'headers=' + encodeURIComponent(rawHeaders);
+            }
+            targetUrl = new URL(unwrapUrl);
+        }
     } catch {
         return res.status(400).send('Invalid url parameter');
     }
@@ -8161,6 +8192,15 @@ app.get('/play_consumet.php', async (req, res) => {
     
     if (stream_url && stream_url.startsWith('http') && !(await isSafeUrl(stream_url))) {
         return res.status(403).send('Access Denied: Unsafe or unauthorized streaming URL detected.');
+    }
+
+    if (stream_url && !stream_url.startsWith('/api/proxy/')) {
+        const lower = stream_url.toLowerCase();
+        if (lower.includes('fancode.com') || lower.includes('in-mc-flive') || lower.includes('in-ak-flive') || 
+            lower.includes('sonydaimenew') || lower.includes('sonymtmnew') || lower.includes('akamaized.net') || 
+            lower.includes('sonyliv') || lower.includes('slivcdn') || lower.includes('dai-fancode')) {
+            stream_url = `/api/proxy/fancode?url=${encodeURIComponent(stream_url)}`;
+        }
     }
     
     const source = (req.query.source as string) || 'consumet.html';
