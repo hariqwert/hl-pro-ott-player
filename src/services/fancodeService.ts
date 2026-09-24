@@ -126,7 +126,7 @@ export async function fetchFanCodeEvents(forceRefresh = false): Promise<{ live: 
                 startTime: m.startTime,
                 thumbnail: m.src || streamData?.logo || 'https://www.fancode.com/skillup-uploads/cms-media/web-1.png',
                 streamUrl: streamUrl,
-                playUrl: streamUrl ? `/play_consumet.php?channel_id=fancode-${matchIdStr}&name=${encodeURIComponent(m.title || m.match_name)}&url=${encodeURIComponent(streamUrl)}&logo=${encodeURIComponent(m.src || '')}&source=fancode` : undefined,
+                playUrl: streamUrl ? `/play_consumet.php?channel_id=fancode-${matchIdStr}&name=${encodeURIComponent(m.title || m.match_name)}&url=${encodeURIComponent(`/api/proxy/fancode?url=${encodeURIComponent(streamUrl)}`)}&logo=${encodeURIComponent(m.src || '')}&source=fancode` : undefined,
                 isLive,
                 updatedAt: now
             };
@@ -149,7 +149,7 @@ export async function fetchFanCodeEvents(forceRefresh = false): Promise<{ live: 
                     status: 'LIVE',
                     thumbnail: val.logo || 'https://www.fancode.com/skillup-uploads/cms-media/web-1.png',
                     streamUrl: val.streamUrl,
-                    playUrl: `/play_consumet.php?channel_id=fancode-${key}&name=${encodeURIComponent(val.title || `FanCode Match #${key}`)}&url=${encodeURIComponent(val.streamUrl)}&logo=${encodeURIComponent(val.logo || '')}&source=fancode`,
+                    playUrl: `/play_consumet.php?channel_id=fancode-${key}&name=${encodeURIComponent(val.title || `FanCode Match #${key}`)}&url=${encodeURIComponent(`/api/proxy/fancode?url=${encodeURIComponent(val.streamUrl)}`)}&logo=${encodeURIComponent(val.logo || '')}&source=fancode`,
                     isLive: true,
                     updatedAt: now
                 };

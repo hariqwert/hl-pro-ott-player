@@ -6929,6 +6929,7 @@ app.all(['/api/proxy/fancode', '/api/proxy/hls', '/proxy'], async (req: Request,
                         (req.get('host') || '').includes('run.app');
         const proto = isHttps ? 'https' : (req.protocol || 'http');
         const host = req.get('host') || 'localhost:3000';
+        const proxyBase = `${proto}://${host}${req.path}`;
         const clientIp = (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '').split(',')[0].trim();
         const upstreamHeaders = getUpstreamProxyHeaders(target, clientIp);
 

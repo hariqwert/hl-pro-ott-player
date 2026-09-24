@@ -302,21 +302,23 @@ router.get('/srt2vtt', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/bingr/stream and POST /api/bingr/scrape
+ * ALL /api/bingr/stream and ALL /api/bingr/scrape
  * Scrape direct M3U8 live stream using multi-cluster auto cascade (Bastion -> DarkMatter -> Polaris -> Edmunds)
  * Fully compatible with microservice payload: { srv, t, id, query: { title, year, season, episode } }
  */
-router.post(['/stream', '/scrape'], async (req: Request, res: Response) => {
+router.all(['/stream', '/scrape'], async (req: Request, res: Response) => {
     try {
-        const body = req.body || {};
-        const type = body.type || body.t || 'movie';
+        const queryParams = req.query || {};
+        const bodyParams = req.body || {};
+        const body = { ...queryParams, ...bodyParams };
+        const type = (body.type || body.t || 'movie') as 'movie' | 'tv';
         const id = body.id;
         const title = body.title || body.query?.title;
         const year = body.year || body.query?.year;
-        const season = body.season || body.query?.season;
-        const episode = body.episode || body.query?.episode;
+        const season = body.season ? Number(body.season) : (body.query?.season ? Number(body.query.season) : undefined);
+        const episode = body.episode ? Number(body.episode) : (body.query?.episode ? Number(body.query.episode) : undefined);
         const srv = body.srv || body.server;
-        const strictSrv = body.strictSrv === true || body.strict === true;
+        const strictSrv = body.strictSrv === true || body.strict === true || body.strictSrv === 'true' || body.strict === 'true';
 
         const result = await scrapeBingrStream({
             type,

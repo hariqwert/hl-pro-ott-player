@@ -80,7 +80,7 @@ export async function fetchSonyLivEvents(forceRefresh = false): Promise<{ live: 
                 const emoji = getSportEmoji(cat);
 
                 const playUrl = rawStream
-                    ? `/play_consumet.php?channel_id=sonyliv-${cid}&name=${encodeURIComponent(title)}&url=${encodeURIComponent(rawStream)}&logo=${encodeURIComponent(thumb)}&source=sonyliv`
+                    ? `/play_consumet.php?channel_id=sonyliv-${cid}&name=${encodeURIComponent(title)}&url=${encodeURIComponent(`/api/proxy/fancode?url=${encodeURIComponent(rawStream)}`)}&logo=${encodeURIComponent(thumb)}&source=sonyliv`
                     : '#';
 
                 const ev: SonyLivEvent = {
