@@ -914,7 +914,17 @@ export async function handleLiveStream(req: Request, res: Response) { console.lo
             return res.redirect(302, `/api/proxy/fancode?url=${encodeURIComponent(target)}`);
         }
     }
-    if (req_id && (req_id.includes('fancode.com') || req_id.includes('flive') || req_id.includes('dai-fancode'))) {
+    if (req_id && (
+        req_id.includes('fancode.com') || 
+        req_id.includes('flive') || 
+        req_id.includes('dai-fancode') || 
+        req_id.includes('in-mc-flive') || 
+        req_id.includes('in-ak-flive') || 
+        req_id.includes('sonydaimenew') || 
+        req_id.includes('sonymtmnew') || 
+        req_id.includes('slivcdn') || 
+        req_id.includes('sonyliv.com')
+    )) {
         return res.redirect(302, `/api/proxy/fancode?url=${encodeURIComponent(req_id)}`);
     }
 

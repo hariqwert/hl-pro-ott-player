@@ -742,7 +742,11 @@ router.get('/api/fancode/all', async (req: Request, res: Response) => {
 
 router.get('/api/fancode/playlist.m3u', async (req: Request, res: Response) => {
     try {
-        const m3u = await getFanCodeM3u();
+        const forwardedProto = (req.headers['x-forwarded-proto'] as string || '').split(',')[0].trim();
+        const proto = (forwardedProto === 'https' || req.secure || (req.get('host') || '').includes('run.app')) ? 'https' : (req.protocol || 'http');
+        const host = req.get('host') || 'localhost:3000';
+        const baseUrl = req.query.direct === '1' ? undefined : `${proto}://${host}`;
+        const m3u = await getFanCodeM3u(baseUrl);
         res.setHeader('Content-Type', 'application/x-mpegurl; charset=utf-8');
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.send(m3u);

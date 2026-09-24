@@ -173,14 +173,15 @@ export async function fetchFanCodeEvents(forceRefresh = false): Promise<{ live: 
 /**
  * Generate standard IPTV M3U for FanCode live sports
  */
-export async function getFanCodeM3u(): Promise<string> {
+export async function getFanCodeM3u(baseUrl?: string): Promise<string> {
     const { live } = await fetchFanCodeEvents();
     let m3u = `#EXTM3U\n`;
     for (const ev of live) {
         if (!ev.streamUrl) continue;
         const category = ev.sportCategory ? `Fancode-${ev.sportCategory}` : 'FanCode Live';
+        const streamTarget = baseUrl ? `${baseUrl}/api/proxy/fancode?url=${encodeURIComponent(ev.streamUrl)}` : ev.streamUrl;
         m3u += `#EXTINF:-1 tvg-id="${ev.id}" tvg-name="${ev.title}" tvg-logo="${ev.thumbnail}" group-title="${category}",${ev.title}\n`;
-        m3u += `${ev.streamUrl}\n\n`;
+        m3u += `${streamTarget}\n\n`;
     }
     return m3u;
 }

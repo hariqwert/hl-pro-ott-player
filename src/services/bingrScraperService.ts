@@ -35,6 +35,38 @@ const CACHE_TTL_STREAM = 10 * 60 * 1000; // 10 minutes
 const CACHE_TTL_DETAILS = 60 * 60 * 1000; // 1 hour
 
 /**
+ * Deep check to detect if a manifest is actually just storyboard thumbnail scrub tiles (.png / tiles.m3u8) instead of a playable video stream
+ */
+export async function isStoryboardStream(url: string): Promise<boolean> {
+    if (!url) return false;
+    const lower = url.toLowerCase();
+    if (lower.includes('tiles.m3u8') || lower.includes('storyboard') || lower.includes('sprites.m3u8')) return true;
+    try {
+        const res = await axios.get(url, {
+            timeout: 3000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+                'Accept': '*/*'
+            }
+        });
+        const content = typeof res.data === 'string' ? res.data : '';
+        if (content.includes('#EXT-X-STREAM-INF')) {
+            const lines = content.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+            const isAllTiles = lines.length > 0 && lines.every(l => {
+                const ll = l.toLowerCase();
+                return ll.includes('tiles') || ll.includes('storyboard') || ll.includes('sprite');
+            });
+            if (isAllTiles) return true;
+        } else if (content.includes('#EXTINF:')) {
+            if (content.includes('tiles/') || content.includes('/tiles') || content.includes('sprites/')) {
+                return true;
+            }
+        }
+    } catch (_) {}
+    return false;
+}
+
+/**
  * Fast stream probe to verify upstream does not return HTTP 404/502/error or expired 403 sub-playlists
  */
 export async function verifyStreamReachable(url: string, timeoutMs: number = 2500): Promise<boolean> {
@@ -42,8 +74,12 @@ export async function verifyStreamReachable(url: string, timeoutMs: number = 250
     if (url.startsWith('/api/') || url.startsWith('/')) return true;
     if (!url.startsWith('http')) return false;
 
-    // Fast-path instant bypass for known ultra-reliable CDN & Cloudflare Worker edge domains
     const lowerUrl = url.toLowerCase();
+    if (lowerUrl.includes('tiles.m3u8') || lowerUrl.includes('storyboard') || lowerUrl.includes('sprites.m3u8')) {
+        return false;
+    }
+
+    // Fast-path instant bypass for known ultra-reliable CDN & Cloudflare Worker edge domains
     if (
         lowerUrl.includes('workers.dev') ||
         lowerUrl.includes('knocw.com') ||
@@ -54,10 +90,6 @@ export async function verifyStreamReachable(url: string, timeoutMs: number = 250
         lowerUrl.includes('as-cdn') ||
         lowerUrl.includes('animesalt') ||
         lowerUrl.includes('vidhide') ||
-        lowerUrl.includes('rousav.tech') ||
-        lowerUrl.includes('rousav') ||
-        lowerUrl.includes('darkmatter') ||
-        lowerUrl.includes('aphelion') ||
         lowerUrl.includes('hoxcv.com') ||
         lowerUrl.includes('vdrk.site')
     ) {
@@ -177,7 +209,7 @@ const BINGR_API_BASE = 'https://api.bingr.one/api';
 /**
  * Universal HTTPS request with Bingr anti-bot and Origin/Referer bypass headers
  */
-function bingrRequest<T = any>(pathname: string, options: {
+export function bingrRequest<T = any>(pathname: string, options: {
     method?: string;
     body?: any;
     referer?: string;
@@ -697,7 +729,7 @@ export async function verifyStreamDuration(
 
         const diff = Math.abs(actualRuntime - expectedRuntime);
 
-        // Feature Film / Movie Scraping (Strict +/- 10 minutes tolerance)
+        // Feature Film / Movie Scraping (Strict +/- 15 minutes tolerance or 15%)
         if (type === 'movie') {
             // Reject fake 1-12 minute trailer clips pretending to be a full feature
             if (actualRuntime < 12 && expectedRuntime >= 20) {
@@ -708,14 +740,14 @@ export async function verifyStreamDuration(
                     reason: `Trailer or sample clip rejected: stream is only ${Math.round(actualRuntime)}m, expected feature film of ~${expectedRuntime}m`
                 };
             }
-            // Strict +/- 10 minutes tolerance rule
-            const tolerance = 10;
+            // Movie tolerance: +/- 15 minutes or 15%
+            const tolerance = Math.max(15, Math.round(expectedRuntime * 0.15));
             if (diff > tolerance) {
                 return {
                     isValid: false,
                     expected: expectedRuntime,
                     actual: actualRuntime,
-                    reason: `Duration mismatch: expected ~${expectedRuntime}m, stream is ${Math.round(actualRuntime)}m (Strict movie tolerance: +/-10m, diff was ${Math.round(diff)}m)`
+                    reason: `Duration mismatch: expected ~${expectedRuntime}m, stream is ${Math.round(actualRuntime)}m (Movie tolerance: +/-${tolerance}m, diff was ${Math.round(diff)}m)`
                 };
             }
         } else {
@@ -760,6 +792,11 @@ export async function verifyStreamDuration(
  */
 export async function getM3u8Duration(url: string, depth = 0): Promise<number | null> {
     if (!url || depth > 3) return null;
+    const lower = url.toLowerCase();
+    if (lower.includes('tiles.m3u8') || lower.includes('storyboard') || lower.includes('sprites.m3u8')) {
+        return null; // Reject storyboard URLs immediately
+    }
+
     try {
         let fetchUrl = url;
         if (fetchUrl.startsWith('/')) {
@@ -791,6 +828,7 @@ export async function getM3u8Duration(url: string, depth = 0): Promise<number | 
         // 1. Is it a master playlist? (#EXT-X-STREAM-INF)
         if (content.includes('#EXT-X-STREAM-INF')) {
             const lines = content.split(/\r?\n/);
+            let hasValidVariant = false;
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (line.startsWith('#EXT-X-STREAM-INF')) {
@@ -799,6 +837,12 @@ export async function getM3u8Duration(url: string, depth = 0): Promise<number | 
                         const candidate = lines[j].trim();
                         if (!candidate) continue;
                         if (candidate.startsWith('#')) continue;
+                        const cLower = candidate.toLowerCase();
+                        if (cLower.includes('tiles') || cLower.includes('storyboard') || cLower.includes('sprite')) {
+                            // Storyboard scrubbing track in master playlist, skip it!
+                            break;
+                        }
+                        hasValidVariant = true;
                         const mediaUrl = candidate.startsWith('http') ? candidate : new URL(candidate, fetchUrl).toString();
                         const dur = await getM3u8Duration(mediaUrl, depth + 1);
                         if (dur !== null && dur > 0) return dur;
@@ -806,10 +850,15 @@ export async function getM3u8Duration(url: string, depth = 0): Promise<number | 
                     }
                 }
             }
-            // Fallback: search for any child .m3u8 path
+            if (!hasValidVariant) {
+                // If master playlist only contained tiles.m3u8, it is a pure storyboard manifest
+                return null;
+            }
+            // Fallback: search for any child .m3u8 path that is NOT storyboard
             for (const line of lines) {
                 const trimmed = line.trim();
-                if (!trimmed.startsWith('#') && (trimmed.includes('.m3u8') || trimmed.includes('/hls/'))) {
+                const trLower = trimmed.toLowerCase();
+                if (!trimmed.startsWith('#') && (trimmed.includes('.m3u8') || trimmed.includes('/hls/')) && !trLower.includes('tiles') && !trLower.includes('storyboard')) {
                     const mediaUrl = trimmed.startsWith('http') ? trimmed : new URL(trimmed, fetchUrl).toString();
                     const dur = await getM3u8Duration(mediaUrl, depth + 1);
                     if (dur !== null && dur > 0) return dur;
@@ -818,7 +867,13 @@ export async function getM3u8Duration(url: string, depth = 0): Promise<number | 
             return null;
         }
 
-        // 2. Media playlist: sum #EXTINF segments (supports video chunks, TS, fMP4, and storyboard tiles)
+        // 2. Media playlist: check if this is pure image tiles (e.g. tiles/00000.png)
+        if (content.includes('tiles/') || content.includes('/tiles') || content.includes('sprites/')) {
+            // Pure storyboard tiles playlist! Reject it!
+            return null;
+        }
+
+        // Sum #EXTINF segments
         const extinfRegex = /#EXTINF:\s*([0-9]+(?:\.[0-9]+)?)/gi;
         let match: RegExpExecArray | null;
         let totalSeconds = 0;
@@ -1064,6 +1119,19 @@ export async function scrapeBingrStream(params: {
                         status: '404_unreachable',
                         latencyMs,
                         error: `Upstream returned HTTP 404/dead link for ${candidateUrl}`
+                    });
+                    return null;
+                }
+
+                // Storyboard Scrubbing Thumbnail Detection (rejects thumbnail sprites / tiles.m3u8)
+                const isStoryboard = await isStoryboardStream(candidateUrl);
+                if (isStoryboard) {
+                    attempts.push({
+                        serverId,
+                        serverName: serverMeta.name,
+                        status: 'storyboard_rejected',
+                        latencyMs,
+                        error: `Storyboard thumbnail scrub playlist rejected (no genuine video stream): ${candidateUrl}`
                     });
                     return null;
                 }

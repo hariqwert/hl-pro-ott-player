@@ -6784,7 +6784,7 @@ const FANCODE_DEFAULT_HEADERS: Record<string, string> = {
     'Accept': '*/*',
 };
 
-function getUpstreamProxyHeaders(targetUrlStr: string): Record<string, string> {
+function getUpstreamProxyHeaders(targetUrlStr: string, clientIp?: string): Record<string, string> {
     const headers: Record<string, string> = { 'Accept': '*/*' };
     let cleanUrl = targetUrlStr;
     let pipeParams = '';
@@ -6825,6 +6825,18 @@ function getUpstreamProxyHeaders(targetUrlStr: string): Record<string, string> {
     if (og) headers['Origin'] = og;
     if (ck) headers['Cookie'] = ck;
 
+    // Resolve client residential IP for Akamai CDN geo-location bypass (especially on Google Cloud Run)
+    const rawIp = (clientIp || '').split(',')[0].trim();
+    const isCloudOrPrivate = !rawIp || 
+        rawIp.startsWith('127.') || 
+        rawIp.startsWith('10.') || 
+        rawIp.startsWith('172.') || 
+        rawIp.startsWith('192.') || 
+        rawIp.includes('::1') || 
+        rawIp.startsWith('34.') || 
+        rawIp.startsWith('35.');
+    const effectiveIndianIp = isCloudOrPrivate ? '49.36.100.1' : rawIp;
+
     const isHotstar = /hotstar\.com$/i.test(u.hostname) || /hotstar-cdn\.net$/i.test(u.hostname) || u.hostname.includes('hotstar');
     if (isHotstar) {
         headers['User-Agent'] = headers['User-Agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -6832,6 +6844,9 @@ function getUpstreamProxyHeaders(targetUrlStr: string): Record<string, string> {
         if (og && !u.hostname.includes('hotstar-cdn.net') && !u.pathname.includes('/videos/')) {
             headers['Origin'] = og;
         }
+        headers['X-Forwarded-For'] = effectiveIndianIp;
+        headers['True-Client-IP'] = effectiveIndianIp;
+        headers['X-Real-IP'] = effectiveIndianIp;
     }
 
     const isSonyLiv = u.hostname.includes('sonyliv.com') || u.hostname.includes('akamaized.net') || u.hostname.includes('sonymtmnew') || u.hostname.includes('sonydaimenew') || u.hostname.includes('slivcdn.com');
@@ -6839,13 +6854,19 @@ function getUpstreamProxyHeaders(targetUrlStr: string): Record<string, string> {
         headers['User-Agent'] = headers['User-Agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0';
         headers['Referer'] = headers['Referer'] || 'https://www.sonyliv.com/';
         headers['Origin'] = headers['Origin'] || 'https://www.sonyliv.com';
+        headers['X-Forwarded-For'] = effectiveIndianIp;
+        headers['True-Client-IP'] = effectiveIndianIp;
+        headers['X-Real-IP'] = effectiveIndianIp;
     }
 
-    const isFanCode = u.hostname.includes('fancode.com') || u.hostname.includes('fancode.pages.dev') || u.hostname.includes('flive') || u.hostname.includes('dai-fancode');
+    const isFanCode = u.hostname.includes('fancode.com') || u.hostname.includes('fancode.pages.dev') || u.hostname.includes('flive') || u.hostname.includes('dai-fancode') || u.hostname.includes('in-mc-flive') || u.hostname.includes('in-ak-flive');
     if (isFanCode) {
         headers['User-Agent'] = headers['User-Agent'] || 'ReactNativeVideo/9.11.1 (Linux;Android 13) AndroidXMedia3/1.6.1';
         headers['Referer'] = headers['Referer'] || 'https://fancode.com/';
         headers['Origin'] = headers['Origin'] || 'https://fancode.com';
+        headers['X-Forwarded-For'] = effectiveIndianIp;
+        headers['True-Client-IP'] = effectiveIndianIp;
+        headers['X-Real-IP'] = effectiveIndianIp;
     }
 
     return Object.keys(headers).length > 1 ? headers : { ...FANCODE_DEFAULT_HEADERS };
@@ -6908,8 +6929,8 @@ app.all(['/api/proxy/fancode', '/api/proxy/hls', '/proxy'], async (req: Request,
                         (req.get('host') || '').includes('run.app');
         const proto = isHttps ? 'https' : (req.protocol || 'http');
         const host = req.get('host') || 'localhost:3000';
-        const proxyBase = `${proto}://${host}${req.path}`;
-        const upstreamHeaders = getUpstreamProxyHeaders(target);
+        const clientIp = (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '').split(',')[0].trim();
+        const upstreamHeaders = getUpstreamProxyHeaders(target, clientIp);
 
         const upstreamRes = await axios.get(targetUrl.toString(), {
             headers: upstreamHeaders,
